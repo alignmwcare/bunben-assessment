@@ -101,8 +101,71 @@ textarea{resize:vertical;min-height:52px;line-height:1.5}
 .at-btn:hover{background:#6D3E07}
 .at-btn:disabled{background:#ccc;cursor:not-allowed}
 </style>
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAFwttn3D884ZrK-dKqZVXj9TIfo_2NHnw",
+  authDomain: "bunben-soap.firebaseapp.com",
+  projectId: "bunben-soap",
+  storageBucket: "bunben-soap.firebasestorage.app",
+  messagingSenderId: "891122280869",
+  appId: "1:891122280869:web:690e4f20a46d05d414a04c"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// グローバルに公開
+window._fbAuth = auth;
+window._fbDb = db;
+window._fbFns = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, addDoc, getDocs, query, orderBy, serverTimestamp };
+
+onAuthStateChanged(auth, (user) => {
+  if(user){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    document.getElementById('user-email').textContent = user.email;
+    window._fbUser = user;
+    loadEntries();
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-screen').style.display='none';
+    window._fbUser = null;
+  }
+});
+</script>
 </head>
 <body>
+
+<!-- ログイン画面 -->
+<div id="login-screen" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f4f2">
+  <div style="background:#fff;border-radius:16px;padding:2rem;width:320px;box-shadow:0 4px 24px rgba(0,0,0,.08)">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="font-size:32px;margin-bottom:.5rem">📋</div>
+      <div style="font-size:16px;font-weight:700;color:#1a1a1a">分娩経過SOAP記録</div>
+      <div style="font-size:11px;color:#aaa;margin-top:4px">ログインして記録を開始</div>
+    </div>
+    <div id="login-err" style="display:none;background:#FCEBEB;color:#A32D2D;padding:.5rem .75rem;border-radius:8px;font-size:12px;margin-bottom:.75rem"></div>
+    <div style="margin-bottom:.75rem">
+      <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">メールアドレス</label>
+      <input id="login-email" type="email" placeholder="example@email.com" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:12px;color:#666;display:block;margin-bottom:4px">パスワード</label>
+      <input id="login-pass" type="password" placeholder="パスワード" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px">
+    </div>
+    <button onclick="doLogin()" style="width:100%;padding:12px;background:#283593;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:.5rem">ログイン</button>
+    <button onclick="doSignup()" style="width:100%;padding:12px;background:#fff;color:#283593;border:1.5px solid #283593;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer">新規登録</button>
+  </div>
+</div>
+
+<!-- アプリ本体 -->
+<div id="app-screen" style="display:none">
 <div class="app">
 
 <div class="hd">
@@ -114,6 +177,10 @@ textarea{resize:vertical;min-height:52px;line-height:1.5}
       <span class="src-badge sb-b">THE 分娩</span>
       <span class="src-badge sb-s">助産診断・技術学II</span>
     </div>
+  </div>
+  <div style="margin-left:auto;text-align:right">
+    <div id="user-email" style="font-size:10px;color:#888;margin-bottom:4px"></div>
+    <button onclick="doLogout()" style="font-size:11px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#666">ログアウト</button>
   </div>
 </div>
 
@@ -728,6 +795,7 @@ JSONのみ返答：
       pages:sel
     };
     entries.push(entry);
+    saveEntryToFirebase(entry);
     renderEntries();
     resetForm();
   }catch(e){
@@ -1183,11 +1251,69 @@ async function judgeAtonin(){
     atoninBg: bg,
   };
   entries.push(entry);
+  saveEntryToFirebase(entry);
   renderEntries();
 
   btn.disabled=false;
   btn.innerHTML='💊 アトニン投与判定';
 }
+
+// ===== Firebase 関連 =====
+function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.style.display='none';
+  const {signInWithEmailAndPassword} = window._fbFns;
+  signInWithEmailAndPassword(window._fbAuth, email, pass)
+    .catch(e=>{
+      errEl.style.display='block';
+      errEl.textContent = 'ログインに失敗しました。メールアドレスとパスワードを確認してください。';
+    });
+}
+
+function doSignup(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-err');
+  errEl.style.display='none';
+  if(pass.length < 6){ errEl.style.display='block'; errEl.textContent='パスワードは6文字以上で設定してください。'; return; }
+  const {createUserWithEmailAndPassword} = window._fbFns;
+  createUserWithEmailAndPassword(window._fbAuth, email, pass)
+    .catch(e=>{
+      errEl.style.display='block';
+      errEl.textContent = '登録に失敗しました。すでに登録済みのメールアドレスの可能性があります。';
+    });
+}
+
+function doLogout(){
+  const {signOut} = window._fbFns;
+  signOut(window._fbAuth);
+}
+
+async function saveEntryToFirebase(entry){
+  if(!window._fbUser) return;
+  const {collection, addDoc, serverTimestamp} = window._fbFns;
+  try{
+    await addDoc(collection(window._fbDb, 'users', window._fbUser.uid, 'entries'), {
+      ...entry,
+      createdAt: serverTimestamp()
+    });
+  }catch(e){ console.error('Firebase保存エラー:', e); }
+}
+
+async function loadEntries(){
+  if(!window._fbUser) return;
+  const {collection, getDocs, query, orderBy} = window._fbFns;
+  try{
+    const q = query(collection(window._fbDb, 'users', window._fbUser.uid, 'entries'), orderBy('createdAt','asc'));
+    const snap = await getDocs(q);
+    entries = [];
+    snap.forEach(doc=>entries.push(doc.data()));
+    renderEntries();
+  }catch(e){ console.error('Firebase読み込みエラー:', e); }
+}
 </script>
+</div><!-- /app-screen -->
 </body>
 </html>
