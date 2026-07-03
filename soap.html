@@ -8,12 +8,30 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;background:#f4f4f2;color:#1a1a1a;font-size:14px}
 .app{max-width:720px;margin:0 auto;padding:1rem}
-.hd{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;padding:1rem 1.25rem;background:#fff;border-radius:12px;border:.5px solid #e0e0e0}
-.hd-ic{width:36px;height:36px;border-radius:8px;background:#E8EAF6;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;padding:.85rem 1.25rem;background:#fff;border-radius:12px;border:.5px solid #e0e0e0}
+.hd-menu{width:36px;height:36px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;flex-shrink:0;border-radius:8px;transition:background .15s}
+.hd-menu:hover{background:#f0f0f0}
+.hd-menu span{display:block;width:20px;height:2px;background:#555;border-radius:2px}
 .hd-text h1{font-size:16px;font-weight:600}
 .src-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .src-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
 .sb-k{background:#FFF3E0;color:#E65100}.sb-b{background:#FCE4EC;color:#C62828}.sb-s{background:#E8EAF6;color:#283593}
+/* サイドパネル */
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
+.side-overlay.open{opacity:1;pointer-events:auto}
+.side-panel{position:fixed;top:0;left:0;height:100%;width:300px;max-width:85vw;background:#fff;z-index:101;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.12)}
+.side-panel.open{transform:translateX(0)}
+.side-panel-hd{padding:1rem 1.25rem;border-bottom:.5px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.side-panel-hd h2{font-size:14px;font-weight:700;color:#283593}
+.side-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;font-size:18px;color:#888;border:none;background:none}
+.side-close:hover{background:#f0f0f0}
+.side-list{flex:1;overflow-y:auto;padding:.5rem 0}
+.side-item{padding:.65rem 1.25rem;cursor:pointer;border-bottom:.5px solid #f0f0f0;transition:background .1s}
+.side-item:hover{background:#f8f8f8}
+.side-item-time{font-size:11px;color:#888;margin-bottom:2px}
+.side-item-s{font-size:13px;font-weight:500;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-item-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;margin-right:4px}
+.side-empty{padding:2rem;text-align:center;color:#aaa;font-size:13px}
 .mode-bar{display:flex;gap:6px;margin-bottom:.75rem}
 .mode-btn{flex:1;padding:10px;border:1.5px solid #d0d0d0;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#888;transition:all .15s;text-align:center}
 .mode-btn.active-rec{border-color:#283593;background:#E8EAF6;color:#283593}
@@ -168,8 +186,22 @@ onAuthStateChanged(auth, (user) => {
 <div id="app-screen" style="display:none">
 <div class="app">
 
+<!-- サイドパネル -->
+<div class="side-overlay" id="side-overlay" onclick="closeSidePanel()"></div>
+<div class="side-panel" id="side-panel">
+  <div class="side-panel-hd">
+    <h2>📋 記録履歴</h2>
+    <button class="side-close" onclick="closeSidePanel()">×</button>
+  </div>
+  <div class="side-list" id="side-list">
+    <div class="side-empty">まだ記録がありません</div>
+  </div>
+</div>
+
 <div class="hd">
-  <div class="hd-ic">📋</div>
+  <div class="hd-menu" onclick="openSidePanel()">
+    <span></span><span></span><span></span>
+  </div>
   <div class="hd-text">
     <h1>分娩経過SOAP記録</h1>
     <div class="src-badges">
@@ -178,8 +210,8 @@ onAuthStateChanged(auth, (user) => {
       <span class="src-badge sb-s">助産診断・技術学II</span>
     </div>
   </div>
-  <div style="margin-left:auto;text-align:right">
-    <div id="user-email" style="font-size:10px;color:#888;margin-bottom:4px"></div>
+  <div style="margin-left:auto;text-align:right;flex-shrink:0">
+    <div id="user-email" style="font-size:10px;color:#888;margin-bottom:4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     <button onclick="doLogout()" style="font-size:11px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#666">ログアウト</button>
   </div>
 </div>
@@ -1256,6 +1288,36 @@ async function judgeAtonin(){
 
   btn.disabled=false;
   btn.innerHTML='💊 アトニン投与判定';
+}
+
+// ===== サイドパネル =====
+function openSidePanel(){
+  document.getElementById('side-panel').classList.add('open');
+  document.getElementById('side-overlay').classList.add('open');
+  renderSideList();
+}
+function closeSidePanel(){
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('side-overlay').classList.remove('open');
+}
+function renderSideList(){
+  const list = document.getElementById('side-list');
+  if(!entries.length){ list.innerHTML='<div class="side-empty">まだ記録がありません</div>'; return; }
+  list.innerHTML = entries.map((e,i)=>{
+    const badge = e.isAtonin
+      ? '<span class="side-item-badge" style="background:#FAEEDA;color:#854F0B">💊 アトニン</span>'
+      : '<span class="side-item-badge" style="background:#E8EAF6;color:#283593">📝 SOAP</span>';
+    const preview = e.isAtonin ? e.o : ('S: '+e.s.substring(0,20)+(e.s.length>20?'…':''));
+    return '<div class="side-item" onclick="jumpToEntry('+i+')">'+
+      '<div class="side-item-time">⏰ '+esc(e.time)+'</div>'+
+      '<div class="side-item-s">'+badge+esc(preview)+'</div>'+
+    '</div>';
+  }).join('');
+}
+function jumpToEntry(i){
+  closeSidePanel();
+  const cards = document.querySelectorAll('.entry-card');
+  if(cards[i]){ cards[i].scrollIntoView({behavior:'smooth',block:'center'}); cards[i].style.outline='2px solid #283593'; setTimeout(()=>cards[i].style.outline='',1500); }
 }
 
 // ===== Firebase 関連 =====
