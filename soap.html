@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>分娩経過SOAP記録</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",sans-serif;background:#F5F5F0;color:#1a1a1a;font-size:14px}
+.app{max-width:720px;margin:0 auto;padding:.75rem}
+
+/* ヘッダー */
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;padding:.75rem 1rem;background:#fff;border-radius:12px;border:.5px solid #e0e0e0;position:sticky;top:0;z-index:50}
+.hd-menu{width:32px;height:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;flex-shrink:0;border-radius:8px;transition:background .15s}
+.hd-menu:hover{background:#f0f0f0}
+.hd-menu span{display:block;width:18px;height:2px;background:#555;border-radius:2px}
+.hd-title{font-size:15px;font-weight:700;flex:1}
+.hd-user{font-size:10px;color:#aaa;text-align:right;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-btn{font-size:11px;padding:4px 8px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#666;flex-shrink:0}
+
+/* 産婦サマリーバー */
+.pt-bar{background:#fff;border-radius:12px;border:.5px solid #e0e0e0;padding:.65rem 1rem;margin-bottom:.75rem}
+.pt-bar-top{display:flex;align-items:center;gap:8px;margin-bottom:.4rem}
+.pt-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.pt-parity{background:#E8EAF6;color:#283593}
+.pt-week{font-size:13px;font-weight:600}
+.pt-updated{font-size:10px;color:#aaa;margin-left:auto}
+.pt-vitals{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem}
+.pt-v{font-size:12px;color:#555}
+.pt-v span{font-weight:700;color:#1a1a1a}
+
+/* アコーディオンカード */
+.acc-card{background:#fff;border-radius:12px;border:.5px solid #e0e0e0;margin-bottom:.5rem;overflow:hidden}
+.acc-head{display:flex;align-items:center;gap:8px;padding:.75rem 1rem;cursor:pointer;user-select:none}
+.acc-head:hover{background:#f8f8f8}
+.acc-icon{font-size:16px;flex-shrink:0}
+.acc-title{font-size:14px;font-weight:600;flex:1}
+.acc-sub{font-size:11px;color:#888;flex-shrink:0}
+.acc-chevron{font-size:12px;color:#aaa;transition:transform .2s;flex-shrink:0}
+.acc-chevron.open{transform:rotate(180deg)}
+.acc-body{display:none;border-top:.5px solid #f0f0f0}
+.acc-body.open{display:block}
+
+/* AI判定カード */
+.judge-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;padding:.75rem 1rem}
+.judge-item{text-align:center;padding:.5rem;border-radius:8px;background:#f8f8f8}
+.judge-label{font-size:10px;color:#888;margin-bottom:2px}
+.judge-val{font-size:13px;font-weight:700}
+.stage-badge{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;background:#E8EAF6;color:#283593}
+.status-normal{color:#2E7D32}
+.status-watch{color:#F57F17}
+.status-alert{color:#C62828}
+.risk-badge{font-size:12px;font-weight:700}
+.risk-1{color:#2E7D32}.risk-2{color:#388E3C}.risk-3{color:#F57F17}.risk-4{color:#E64A19}.risk-5{color:#C62828}
+
+/* アラートバナー */
+.alert-banner{margin:.5rem 1rem;padding:.5rem .75rem;border-radius:8px;font-size:12px;font-weight:600}
+.alert-warn{background:#FFF3E0;color:#E65100;border:.5px solid #FFB74D}
+.alert-danger{background:#FCEBEB;color:#C62828;border:.5px solid #EF9A9A}
+
+/* 入力フォーム */
+.form-section{padding:.75rem 1rem}
+.sec-ttl{font-size:11px;font-weight:700;color:#888;letter-spacing:.06em;margin-bottom:.5rem;text-transform:uppercase}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:11px;color:#666;font-weight:500}
+.field input,.field select,.field textarea{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;font-family:inherit}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#283593}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.5rem}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-bottom:.5rem}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.chip{padding:4px 10px;border-radius:20px;border:1px solid #ddd;font-size:12px;cursor:pointer;transition:all .15s;background:#fff;user-select:none}
+.chip:hover{background:#f0f0f0}
+.chip.on{background:#283593;color:#fff;border-color:#283593}
+.chip.warn.on{background:#E65100;color:#fff;border-color:#E65100}
+.chip.danger.on{background:#C62828;color:#fff;border-color:#C62828}
+.tc{padding:4px 10px;border-radius:20px;border:1px solid #ddd;font-size:12px;cursor:pointer;background:#fff;user-select:none}
+.tc.on{background:#283593;color:#fff;border-color:#283593}
+.tc.warn{border-color:#FFB74D;color:#E65100}
+.tc.warn.on{background:#E65100;color:#fff;border-color:#E65100}
+
+/* BP入力 */
+.bp-wrap{display:flex;align-items:center;gap:4px}
+.bp-wrap input{flex:1}
+.bp-slash{color:#888;font-weight:700}
+
+/* サブセクション */
+.sub-box{background:#F8F8F6;border-radius:8px;padding:.65rem .85rem;margin-bottom:.5rem;border:.5px solid #eee}
+.sub-ttl{font-size:10px;font-weight:700;color:#888;margin-bottom:.4rem;letter-spacing:.05em}
+
+/* アトニンセクション */
+.atonin-section{background:#FFFDF5;border-radius:8px;padding:.65rem .85rem;margin-bottom:.5rem;border:.5px solid #e0d0a0}
+.atonin-ttl{font-size:11px;font-weight:700;color:#854F0B;margin-bottom:.5rem;display:flex;align-items:center;gap:6px}
+.at-level-result{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;text-align:center;margin-top:.5rem;display:none}
+.at-result{display:none;padding:.65rem .85rem;border-radius:8px;margin-top:.5rem;font-size:12px;line-height:1.8}
+.at-btn{width:100%;padding:10px;background:#854F0B;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-top:.5rem}
+.at-btn:hover{background:#6D3E07}
+.at-btn:disabled{background:#ccc}
+
+/* 生成・送信ボタン */
+.go-btn{width:100%;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:.75rem}
+.go-btn-soap{background:#283593;color:#fff}
+.go-btn-soap:hover{background:#1a237e}
+.go-btn-soap:disabled{background:#ccc}
+
+/* エントリーカード */
+.entries-wrap{margin-bottom:.75rem}
+.empty-state{text-align:center;padding:2rem;color:#aaa;font-size:13px;line-height:2}
+.entry-card{background:#fff;border-radius:12px;border:.5px solid #e0e0e0;margin-bottom:.5rem;overflow:hidden}
+.entry-head{display:flex;align-items:center;gap:6px;padding:.6rem 1rem;flex-wrap:nowrap;overflow:hidden}
+.entry-head.mode-rec{background:#EEF0FB}
+.entry-time{font-size:12px;font-weight:700;color:#283593;flex-shrink:0}
+.entry-mode-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0}
+.entry-summary{font-size:11px;color:#888;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.copy-btn{display:flex;align-items:center;gap:3px;padding:4px 8px;background:#f4f4f2;border:.5px solid #d0d0d0;border-radius:6px;cursor:pointer;font-size:11px;color:#555;white-space:nowrap;flex-shrink:0}
+.copy-btn:hover{background:#E8EAF6;color:#283593}
+.del-btn{width:24px;height:24px;display:flex;align-items:center;justify-content:center;background:none;border:.5px solid #ddd;border-radius:6px;cursor:pointer;font-size:14px;color:#bbb;flex-shrink:0}
+.del-btn:hover{background:#FCEBEB;color:#C62828;border-color:#C62828}
+.entry-body{padding:.65rem 1rem;font-size:12px;line-height:1.8}
+.soap-label{font-size:10px;font-weight:700;color:#888;margin-top:.4rem;margin-bottom:1px}
+.soap-text{color:#1a1a1a;white-space:pre-wrap}
+
+/* サイドパネル */
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;pointer-events:none;transition:opacity .25s}
+.side-overlay.open{opacity:1;pointer-events:auto}
+.side-panel{position:fixed;top:0;left:0;height:100%;width:300px;max-width:85vw;background:#fff;z-index:101;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.12)}
+.side-panel.open{transform:translateX(0)}
+.side-panel-hd{padding:1rem 1.25rem;border-bottom:.5px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.side-panel-hd h2{font-size:14px;font-weight:700;color:#283593}
+.side-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;font-size:18px;color:#888;border:none;background:none}
+.side-list{flex:1;overflow-y:auto;padding:.5rem 0}
+.side-item{padding:.65rem 1.25rem;cursor:pointer;border-bottom:.5px solid #f0f0f0;transition:background .1s}
+.side-item:hover{background:#f8f8f8}
+.side-item-time{font-size:11px;color:#888;margin-bottom:2px}
+.side-item-s{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-empty{padding:2rem;text-align:center;color:#aaa;font-size:13px}
+
+/* スピナー */
+.spin-wrap{text-align:center;padding:1.5rem;color:#888;font-size:13px}
+.spin{display:inline-block;width:20px;height:20px;border:2px solid #eee;border-top-color:#283593;border-radius:50%;animation:sp .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* サマリーモーダル */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-hd{padding:1rem 1.25rem;border-bottom:.5px solid #eee;display:flex;align-items:center;justify-content:space-between}
+.modal-hd h2{font-size:15px;font-weight:700}
+.modal-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;font-size:18px;color:#888;border:none;background:none}
+.modal-body{flex:1;overflow-y:auto;padding:1rem 1.25rem}
+.modal-actions{padding:.75rem 1.25rem;border-top:.5px solid #eee;display:flex;gap:.5rem;flex-wrap:wrap}
+.modal-btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none}
+.mb-primary{background:#283593;color:#fff}
+.mb-secondary{background:#f4f4f2;color:#555;border:.5px solid #ddd}
+.summary-text{font-size:13px;line-height:2;white-space:pre-wrap;font-family:inherit}
+textarea.summary-edit{width:100%;min-height:300px;padding:.75rem;border:1px solid #ddd;border-radius:8px;font-size:13px;line-height:1.8;font-family:inherit;resize:vertical}
+
+/* ログイン */
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F5F5F0}
+.login-box{background:#fff;border-radius:16px;padding:2rem;width:320px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.login-box h1{font-size:16px;font-weight:700;text-align:center;margin-bottom:.25rem}
+.login-sub{font-size:11px;color:#aaa;text-align:center;margin-bottom:1.5rem}
+.login-err{display:none;background:#FCEBEB;color:#C62828;padding:.5rem .75rem;border-radius:8px;font-size:12px;margin-bottom:.75rem}
+.login-field{margin-bottom:.75rem}
+.login-field label{font-size:12px;color:#666;display:block;margin-bottom:4px}
+.login-field input{width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:14px}
+.login-btn{width:100%;padding:12px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:.5rem}
+.login-btn-primary{background:#283593;color:#fff}
+.login-btn-secondary{background:#fff;color:#283593;border:1.5px solid #283593}
+
+/* FHRレベル */
+.fhr-level-result{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;text-align:center;display:none;margin-top:.4rem}
+.decel-detail{display:none;background:#fff8f0;border-radius:8px;padding:.5rem .75rem;margin-top:4px;border:.5px solid #ffe0b2}
+.decel-severity{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;text-align:center;display:none;margin-top:.4rem}
+
+/* タイムライン */
+.timeline-item{display:flex;gap:.75rem;padding:.5rem 1rem;border-bottom:.5px solid #f5f5f5}
+.tl-time{font-size:11px;color:#888;flex-shrink:0;width:40px;padding-top:2px}
+.tl-content{flex:1;font-size:12px;line-height:1.7}
+.tl-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px}
+
+/* 差分 */
+.diff-item{display:flex;justify-content:space-between;align-items:center;padding:.4rem 1rem;border-bottom:.5px solid #f5f5f5;font-size:12px}
+.diff-key{color:#888}
+.diff-arrow{color:#aaa;margin:0 .4rem}
+.diff-new{font-weight:700;color:#283593}
+.diff-flag{font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px}
+.df-up{background:#E8F5E9;color:#2E7D32}
+.df-down{background:#FCEBEB;color:#C62828}
+.df-warn{background:#FFF3E0;color:#E65100}
+
+@media(max-width:400px){.row3{grid-template-columns:1fr 1fr}}
+</style>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAFwttn3D884ZrK-dKqZVXj9TIfo_2NHnw",
+  authDomain: "bunben-soap.firebaseapp.com",
+  projectId: "bunben-soap",
+  storageBucket: "bunben-soap.firebasestorage.app",
+  messagingSenderId: "891122280869",
+  appId: "1:891122280869:web:690e4f20a46d05d414a04c"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+window._fb = { auth, db, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp };
+
+onAuthStateChanged(auth, user => {
+  window._fbUser = user;
+  if(user){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app-screen').style.display='block';
+    document.getElementById('hd-user').textContent=user.email;
+    if(typeof loadEntries==='function') loadEntries();
+  } else {
+    document.getElementById('login-screen').style.display='flex';
+    document.getElementById('app-screen').style.display='none';
+  }
+});
+
+// グローバルに公開（通常scriptから呼べるように）
+window.doLogin = function(){
+  const email=document.getElementById('l-email').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  const errEl=document.getElementById('login-err');
+  errEl.style.display='none';
+  signInWithEmailAndPassword(auth,email,pass).catch(()=>{
+    errEl.style.display='block';errEl.textContent='ログインに失敗しました。';
+  });
+};
+window.doSignup = function(){
+  const email=document.getElementById('l-email').value.trim();
+  const pass=document.getElementById('l-pass').value;
+  const errEl=document.getElementById('login-err');
+  errEl.style.display='none';
+  if(pass.length<6){errEl.style.display='block';errEl.textContent='パスワードは6文字以上で設定してください。';return;}
+  createUserWithEmailAndPassword(auth,email,pass).catch(()=>{
+    errEl.style.display='block';errEl.textContent='登録に失敗しました。すでに登録済みのメールアドレスの可能性があります。';
+  });
+};
+window.doLogout = function(){ signOut(auth); };
+</script>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <h1>分娩経過SOAP記録</h1>
+
+    <div id="login-err" class="login-err"></div>
+    <div class="login-field">
+      <label>メールアドレス</label>
+      <input id="l-email" type="email" placeholder="example@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>パスワード</label>
+      <input id="l-pass" type="password" placeholder="パスワード" autocomplete="current-password">
+    </div>
+    <button class="login-btn login-btn-primary" onclick="doLogin()">ログイン</button>
+    <button class="login-btn login-btn-secondary" onclick="doSignup()">新規登録</button>
+  </div>
+</div>
+
+<!-- アプリ本体 -->
+<div id="app-screen" style="display:none">
+
+<!-- サイドパネル -->
+<div class="side-overlay" id="side-overlay" onclick="closeSidePanel()"></div>
+<div class="side-panel" id="side-panel">
+  <div class="side-panel-hd">
+    <h2>📋 記録履歴</h2>
+    <button class="side-close" onclick="closeSidePanel()">×</button>
+  </div>
+  <div class="side-list" id="side-list"><div class="side-empty">まだ記録がありません</div></div>
+</div>
+
+<!-- 経過サマリーモーダル -->
+<div class="modal-overlay" id="summary-modal">
+  <div class="modal">
+    <div class="modal-hd">
+      <h2>📄 分娩経過サマリー</h2>
+      <button class="modal-close" onclick="closeSummaryModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="summary-content"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn mb-primary" onclick="copySummary()">📋 コピー</button>
+      <button class="modal-btn mb-secondary" onclick="toggleSummaryEdit()">✏️ 編集</button>
+      <button class="modal-btn mb-secondary" onclick="generateSummary()">🔄 再生成</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- ヘッダー -->
+<div class="hd">
+  <div class="hd-menu" onclick="openSidePanel()"><span></span><span></span><span></span></div>
+  <div class="hd-title">分娩経過SOAP記録</div>
+  <div id="hd-user" class="hd-user"></div>
+  <button class="logout-btn" onclick="doLogout()">ログアウト</button>
+</div>
+
+<!-- 産婦サマリーバー -->
+<div class="pt-bar" id="pt-bar" style="display:none">
+  <div class="pt-bar-top">
+    <span class="pt-badge pt-parity" id="pt-parity">初産婦</span>
+    <span class="pt-week" id="pt-week"></span>
+    <span class="pt-updated" id="pt-updated"></span>
+  </div>
+  <div class="pt-vitals" id="pt-vitals"></div>
+</div>
+
+<!-- エントリーエリア -->
+<div id="spin-wrap" class="spin-wrap" style="display:none"><span class="spin"></span><span id="spin-msg">資料を参照中...</span></div>
+<div class="entries-wrap" id="entries-wrap">
+  <div class="empty-state" id="empty-state">📝<br>まだ記録がありません<br>下のフォームからSOAPを作成してください</div>
+</div>
+
+<!-- 経過サマリーボタン -->
+<div style="text-align:center;margin-bottom:.75rem" id="summary-btn-wrap" style="display:none">
+  <button onclick="generateSummary()" style="padding:10px 24px;background:#fff;border:1.5px solid #283593;color:#283593;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer">📄 経過サマリーを生成</button>
+</div>
+
+<!-- 入力フォーム -->
+<div class="acc-card">
+  <div class="acc-head" onclick="toggleAcc(this)">
+    <span class="acc-icon">📝</span>
+    <span class="acc-title">SOAP入力</span>
+    <span class="acc-sub" id="form-time-preview"></span>
+    <span class="acc-chevron open">▼</span>
+  </div>
+  <div class="acc-body open" id="form-body">
+    <div class="form-section">
+
+      <!-- 記録時刻 -->
+      <div class="row2" style="margin-bottom:.75rem">
+        <div class="field">
+          <label>記録時刻</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <input type="number" id="rec-h" min="0" max="23" style="width:56px;text-align:center" autocomplete="off">
+            <span style="color:#666">時</span>
+            <input type="number" id="rec-m" min="0" max="59" style="width:56px;text-align:center" autocomplete="off">
+            <span style="color:#666">分</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 産婦基本情報 -->
+      <div class="sub-box">
+        <div class="sub-ttl">産婦基本情報（初回入力・以降引き継ぎ）</div>
+        <div class="row3" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>経産回数</label>
+            <select id="parity" onchange="onParityChange()">
+              <option value="">選択</option>
+              <option value="0">初産婦</option>
+              <option value="1">経産1回</option>
+              <option value="2">経産2回</option>
+              <option value="3">経産3回以上</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>妊娠週数</label>
+            <div style="display:flex;gap:2px;align-items:center">
+              <input type="number" id="ga-w" min="22" max="43" placeholder="週" style="width:44px;text-align:center" autocomplete="off" oninput="autoFocus(this,2,'ga-d')">
+              <span style="font-size:11px;color:#666">w</span>
+              <input type="number" id="ga-d" min="0" max="6" placeholder="d" style="width:36px;text-align:center" autocomplete="off">
+            </div>
+          </div>
+          <div class="field">
+            <label>破水時刻</label>
+            <div style="display:flex;gap:2px;align-items:center">
+              <input type="number" id="rom-h" min="0" max="23" placeholder="時" style="width:44px;text-align:center" autocomplete="off" oninput="autoFocus(this,2,'rom-m')">
+              <span style="font-size:11px;color:#666">:</span>
+              <input type="number" id="rom-m" min="0" max="59" placeholder="分" style="width:40px;text-align:center" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div style="margin-bottom:.5rem">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:4px">入院理由</label>
+          <div class="chips">
+            <div class="chip" onclick="tog(this)" data-key="adm-rom">破水</div>
+            <div class="chip" onclick="tog(this)" data-key="adm-uc">陣痛</div>
+            <div class="chip" onclick="tog(this)" data-key="adm-induced">誘発入院</div>
+            <div class="chip" onclick="tog(this)" data-key="adm-elective">予定帝王切開</div>
+            <div class="chip" onclick="tog(this)" data-key="adm-other">その他</div>
+          </div>
+        </div>
+        <div class="chips" style="margin-bottom:.5rem">
+          <div class="chip" onclick="tog(this)" data-key="induced">誘発分娩</div>
+          <div class="chip" onclick="tog(this)" data-key="atonin-use">アトニン使用</div>
+          <div class="chip" onclick="tog(this)" data-key="gbs">GBS陽性</div>
+          <div class="chip" onclick="tog(this)" data-key="epi">硬膜外麻酔</div>
+        </div>
+        <!-- 経産婦の前回情報（経産選択時のみ表示） -->
+        <div id="prev-info" style="display:none;margin-top:.5rem;padding:.5rem .75rem;background:#F0F4FF;border-radius:8px;border:.5px solid #C5CAE9">
+          <div class="sub-ttl" style="color:#283593">前回分娩情報</div>
+          <div class="chips">
+            <div class="chip" onclick="tog(this)" data-key="prev-cs">前回帝王切開</div>
+            <div class="chip" onclick="tog(this)" data-key="prev-induced">前回誘発</div>
+            <div class="chip" onclick="tog(this)" data-key="prev-pph">前回出血多量</div>
+            <div class="chip" onclick="tog(this)" data-key="prev-rapid">前回急速進行</div>
+            <div class="chip" onclick="tog(this)" data-key="prev-forceps">前回鉗子/吸引</div>
+            <div class="chip warn" onclick="tog(this)" data-key="prev-uterine-rupture">前回子宮破裂</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- S -->
+      <div class="sub-ttl" style="margin-top:.5rem">S　産婦の訴え</div>
+      <div class="field" style="margin-bottom:.75rem">
+        <textarea id="s-text" rows="2" placeholder="例：「いきみたい」「ずっと張っている」「痛みが強い」" style="resize:none"></textarea>
+      </div>
+
+      <!-- O：内診所見 -->
+      <div class="sub-box">
+        <div class="sub-ttl">O　内診所見</div>
+        <div class="row3" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>子宮口開大 (cm)</label>
+            <select id="os">
+              <option value="">選択</option>
+              <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+              <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+              <option value="9">9</option><option value="10">10（全開大）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>展退度 (%)</label>
+            <select id="effacement">
+              <option value="">選択</option>
+              <option value="0">0</option><option value="10">10</option><option value="20">20</option>
+              <option value="30">30</option><option value="40">40</option><option value="50">50</option>
+              <option value="60">60</option><option value="70">70</option><option value="80">80</option>
+              <option value="90">90</option><option value="100">100</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Station</label>
+            <select id="station">
+              <option value="">選択</option>
+              <option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+              <option value="0">0</option>
+              <option value="+1">+1</option><option value="+2">+2</option><option value="+3">+3</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>回旋</label>
+            <div style="display:flex;gap:6px;align-items:flex-start;flex-wrap:wrap;margin-top:2px">
+              <select id="rotation-hour" onchange="calcRotation()" style="width:70px">
+                <option value="">時</option>
+                <option value="1">1時</option><option value="2">2時</option><option value="3">3時</option>
+                <option value="4">4時</option><option value="5">5時</option><option value="6">6時</option>
+                <option value="7">7時</option><option value="8">8時</option><option value="9">9時</option>
+                <option value="10">10時</option><option value="11">11時</option><option value="12">12時</option>
+              </select>
+              <div class="chips" style="margin-top:0">
+                <div class="chip" onclick="setFontanel('small',this)">小泉門</div>
+                <div class="chip" onclick="setFontanel('large',this)">大泉門</div>
+              </div>
+            </div>
+            <div id="rotation-result" style="font-size:11px;margin-top:4px;padding:3px 8px;border-radius:6px;display:none"></div>
+          </div>
+          <div class="field">
+            <label>産瘤・骨重積</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="caput">産瘤あり</div>
+              <div class="chip" onclick="tog(this)" data-key="molding">骨重積あり</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- O：FHR -->
+      <div class="sub-box">
+        <div class="sub-ttl">O　FHR・CTG</div>
+        <div class="row3" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>FHR基線 (bpm)</label>
+            <input type="number" id="fhr" min="60" max="220" placeholder="110〜160" autocomplete="off" oninput="autoFocus(this,3,'bp-sys');calcFhrLevelMain()">
+          </div>
+          <div class="field">
+            <label>BP (mmHg)</label>
+            <div class="bp-wrap">
+              <input type="number" id="bp-sys" min="60" max="220" placeholder="収" autocomplete="off" oninput="autoFocus(this,3,'bp-dia')">
+              <span class="bp-slash">/</span>
+              <input type="number" id="bp-dia" min="30" max="130" placeholder="拡" autocomplete="off" oninput="autoFocus(this,2,'bt')">
+            </div>
+          </div>
+          <div class="field">
+            <label>BT(℃)/PR(/分)</label>
+            <div style="display:flex;gap:3px;align-items:center">
+              <input type="number" id="bt" step="0.1" min="35" max="42" placeholder="36.5" style="width:64px" autocomplete="off" oninput="autoFocus(this,4,'pulse')">
+              <span style="font-size:11px;color:#888">/</span>
+              <input type="number" id="pulse" min="40" max="160" placeholder="80" style="width:52px" autocomplete="off">
+            </div>
+          </div>
+        </div>
+        <div class="row2" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>基線細変動</label>
+            <select id="fhr-variability">
+              <option value="">選択</option>
+              <option value="normal">正常（6bpm以上）</option>
+              <option value="decrease">減少（5bpm以下）</option>
+              <option value="absent">消失</option>
+              <option value="increase">増加</option>
+              <option value="sinusoidal">サイナソイダル</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>加速波（一過性頻脈）</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="setAccel('yes',this)">あり</div>
+              <div class="chip" onclick="setAccel('no',this)">なし</div>
+              <div class="chip" onclick="setAccel('unknown',this)">不明</div>
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:.5rem">
+          <label>一過性徐脈</label>
+          <div class="chips" style="margin-top:4px">
+            <div class="chip" onclick="setDecelMain('none',this)">なし</div>
+            <div class="chip" onclick="setDecelMain('early',this)">早発</div>
+            <div class="chip warn" onclick="setDecelMain('variable',this)">変動</div>
+            <div class="chip warn" onclick="setDecelMain('late',this)">遅発</div>
+            <div class="chip danger" onclick="setDecelMain('prolonged',this)">遷延</div>
+          </div>
+        </div>
+        <!-- 一過性徐脈詳細 -->
+        <div id="main-decel-variable" class="decel-detail">
+          <div class="sub-ttl">変動一過性徐脈の詳細</div>
+          <div class="row3">
+            <div class="field"><label>最下点 (bpm)</label><input type="number" id="md-var-nadir" min="40" max="160" autocomplete="off" oninput="autoFocus(this,3,'md-var-dur');calcMainDecelSev()"></div>
+            <div class="field"><label>持続 (秒)</label><input type="number" id="md-var-dur" min="0" max="300" autocomplete="off" oninput="calcMainDecelSev()"></div>
+            <div class="field"><label>回復 (秒)</label><input type="number" id="md-var-rec" min="0" max="300" autocomplete="off"></div>
+          </div>
+        </div>
+        <div id="main-decel-late" class="decel-detail">
+          <div class="sub-ttl">遅発一過性徐脈の詳細</div>
+          <div class="row2">
+            <div class="field"><label>低下幅 (bpm)</label><input type="number" id="md-late-drop" min="0" max="100" autocomplete="off" oninput="calcMainDecelSev()"></div>
+            <div class="field"><label>回復 (秒)</label><input type="number" id="md-late-rec" min="0" max="300" autocomplete="off"></div>
+          </div>
+        </div>
+        <div id="main-decel-prolonged" class="decel-detail">
+          <div class="sub-ttl">遷延一過性徐脈の詳細</div>
+          <div class="row2">
+            <div class="field"><label>最下点 (bpm)</label><input type="number" id="md-pro-nadir" min="40" max="160" autocomplete="off" oninput="calcMainDecelSev()"></div>
+            <div class="field"><label>回復 (秒)</label><input type="number" id="md-pro-rec" min="0" max="300" autocomplete="off"></div>
+          </div>
+        </div>
+        <div id="main-decel-sev" class="decel-severity"></div>
+        <div id="fhr-level-main" class="fhr-level-result"></div>
+      </div>
+
+      <!-- O：陣痛 -->
+      <div class="sub-box">
+        <div class="sub-ttl">O　陣痛</div>
+        <div class="row3" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>間隔 (分)</label>
+            <select id="uc-interval">
+              <option value="">選択</option>
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+              <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+              <option value="10">10</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>持続 (秒)</label>
+            <select id="uc-duration">
+              <option value="">選択</option>
+              <option value="20">20</option><option value="30">30</option><option value="40">40</option>
+              <option value="50">50</option><option value="60">60</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>回数 (/10分)</label>
+            <input type="number" id="uc-count" min="0" max="15" placeholder="例: 4" autocomplete="off">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>強さ</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="togUC('uc-weak',this)">微弱</div>
+              <div class="chip" onclick="togUC('uc-norm',this)">正常</div>
+              <div class="chip warn" onclick="togUC('uc-strong',this)">過強</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>トーヌス（子宮緊張）</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="tonus-norm">正常</div>
+              <div class="chip warn" onclick="tog(this)" data-key="tonus-high">亢進</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- O：羊水・排泄 -->
+      <div class="sub-box">
+        <div class="sub-ttl">O　羊水・排泄</div>
+        <div class="row2" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>羊水</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="togROM('rom-none',this)">破水なし</div>
+              <div class="chip" onclick="togROM('rom-clear',this)">透明</div>
+              <div class="chip warn" onclick="togROM('rom-mec',this)">混濁</div>
+              <div class="chip danger" onclick="togROM('rom-blood',this)">血性</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>羊水臭</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="rom-smell-none">なし</div>
+              <div class="chip warn" onclick="tog(this)" data-key="rom-smell-yes">臭気あり</div>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>羊水量（主観）</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="af-norm">正常</div>
+              <div class="chip warn" onclick="tog(this)" data-key="af-poly">多い</div>
+              <div class="chip warn" onclick="tog(this)" data-key="af-oligo">少ない</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>尿量</label>
+            <input type="number" id="urine-out" min="0" placeholder="mL" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <!-- O：母体状態 -->
+      <div class="sub-box">
+        <div class="sub-ttl">O　母体状態</div>
+        <div class="row3" style="margin-bottom:.5rem">
+          <div class="field">
+            <label>疼痛NRS (0-10)</label>
+            <select id="nrs">
+              <option value="">選択</option>
+              <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+              <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+              <option value="6">6</option><option value="7">7</option><option value="8">8</option>
+              <option value="9">9</option><option value="10">10</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>出血</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="bl-none">なし</div>
+              <div class="chip warn" onclick="tog(this)" data-key="bl-show">産徴程度</div>
+              <div class="chip danger" onclick="tog(this)" data-key="bl-heavy">多量</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>疲労</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="fat-none">なし</div>
+              <div class="chip warn" onclick="tog(this)" data-key="fat-mild">軽度</div>
+              <div class="chip danger" onclick="tog(this)" data-key="fat-severe">高度</div>
+            </div>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label>表情・態度</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="face-calm">落ち着いている</div>
+              <div class="chip warn" onclick="tog(this)" data-key="face-tense">緊張している</div>
+              <div class="chip danger" onclick="tog(this)" data-key="face-panic">パニック状態</div>
+            </div>
+          </div>
+          <div class="field">
+            <label>不安・訴え</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="chip" onclick="tog(this)" data-key="anx-none">なし</div>
+              <div class="chip warn" onclick="tog(this)" data-key="anx-mild">軽度</div>
+              <div class="chip danger" onclick="tog(this)" data-key="anx-severe">強い</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P：実施したこと -->
+      <div class="sub-box">
+        <div class="sub-ttl">P　実施したこと・予定</div>
+        <div class="chips" style="margin-bottom:.5rem">
+          <div class="chip" onclick="tog(this)" data-key="p-left">左側臥位</div>
+          <div class="chip" onclick="tog(this)" data-key="p-o2">酸素投与</div>
+          <div class="chip" onclick="tog(this)" data-key="p-cath">導尿</div>
+          <div class="chip" onclick="tog(this)" data-key="p-dr">医師報告</div>
+          <div class="chip" onclick="tog(this)" data-key="p-ctg">CTG強化</div>
+          <div class="chip" onclick="tog(this)" data-key="p-ie">内診</div>
+          <div class="chip" onclick="tog(this)" data-key="p-push">努責介助</div>
+          <div class="chip" onclick="tog(this)" data-key="p-ivf">輸液</div>
+          <div class="chip" onclick="tog(this)" data-key="p-move">体位変換</div>
+          <div class="chip" onclick="tog(this)" data-key="p-wait">経過観察</div>
+        </div>
+        <div class="field">
+          <textarea id="p-extra" rows="2" placeholder="例: Dr.〇〇に報告→〇〇の指示。次回内診〇時予定" style="resize:none"></textarea>
+        </div>
+      </div>
+
+      <button class="go-btn go-btn-soap" id="go-btn" onclick="generateSOAP()">📝 パルトグラムモードで生成</button>
+
+      <!-- アトニン管理セクション -->
+      <div class="atonin-section" id="atonin-section" style="margin-top:.75rem">
+        <div class="atonin-ttl">💊 アトニン管理（使用中のみ）<span style="font-size:10px;color:#aaa;font-weight:400">CQ415-2/3</span></div>
+
+        <!-- FHRレベル判定 -->
+        <div class="sub-box" style="margin-bottom:.5rem">
+          <div class="sub-ttl">FHRレベル自動判定（産科GL表II-1〜5）</div>
+          <div class="row2" style="margin-bottom:.5rem">
+            <div class="field">
+              <label>FHR基線 (bpm)</label>
+              <input type="number" id="at-fhr" min="60" max="220" placeholder="110〜160" autocomplete="off" oninput="calcAtFhrLevel()">
+              <div id="at-fhr-label" style="font-size:10px;color:#854F0B;margin-top:2px;font-weight:600"></div>
+            </div>
+            <div class="field">
+              <label>基線細変動</label>
+              <div class="chips" style="margin-top:4px">
+                <div class="tc" onclick="setAtV('normal',this)" data-atv>正常</div>
+                <div class="tc" onclick="setAtV('decrease',this)" data-atv>減少</div>
+                <div class="tc" onclick="setAtV('absent',this)" data-atv>消失</div>
+                <div class="tc" onclick="setAtV('increase',this)" data-atv>増加</div>
+                <div class="tc" onclick="setAtV('sinusoidal',this)" data-atv>サイナ</div>
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:.5rem">
+            <label>一過性徐脈の種類</label>
+            <div class="chips" style="margin-top:4px">
+              <div class="tc" onclick="setAtDecelType('none',this)" data-dtype>なし</div>
+              <div class="tc" onclick="setAtDecelType('early',this)" data-dtype>早発</div>
+              <div class="tc warn" onclick="setAtDecelType('variable',this)" data-dtype>変動</div>
+              <div class="tc warn" onclick="setAtDecelType('late',this)" data-dtype>遅発</div>
+              <div class="tc warn" onclick="setAtDecelType('prolonged',this)" data-dtype>遷延</div>
+            </div>
+          </div>
+          <div id="at-decel-variable" class="decel-detail">
+            <div class="row3">
+              <div class="field"><label>最下点(bpm)</label><input type="number" id="at-var-nadir" autocomplete="off" oninput="autoFocus(this,3,'at-var-dur');calcAtDecelSev()"></div>
+              <div class="field"><label>持続(秒)</label><input type="number" id="at-var-dur" autocomplete="off" oninput="calcAtDecelSev()"></div>
+              <div class="field"><label>回復(秒)</label><input type="number" id="at-var-rec" autocomplete="off"></div>
+            </div>
+          </div>
+          <div id="at-decel-late" class="decel-detail">
+            <div class="row2">
+              <div class="field"><label>低下幅(bpm)</label><input type="number" id="at-late-drop" autocomplete="off" oninput="calcAtDecelSev()"></div>
+              <div class="field"><label>回復(秒)</label><input type="number" id="at-late-rec" autocomplete="off"></div>
+            </div>
+          </div>
+          <div id="at-decel-prolonged" class="decel-detail">
+            <div class="row2">
+              <div class="field"><label>最下点(bpm)</label><input type="number" id="at-pro-nadir" autocomplete="off" oninput="calcAtDecelSev()"></div>
+              <div class="field"><label>回復(秒)</label><input type="number" id="at-pro-rec" autocomplete="off"></div>
+            </div>
+          </div>
+          <div id="at-decel-sev" class="decel-severity"></div>
+          <div id="at-level-result" class="at-level-result"></div>
+        </div>
+
+        <!-- 投与状況 -->
+        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:80px">
+            <label>投与量 (mU/分)</label>
+            <input type="number" id="at-dose" value="10" min="0" max="40" step="0.5" autocomplete="off">
+          </div>
+          <div class="field" style="flex:1;min-width:80px">
+            <label>収縮回数 (/10分)</label>
+            <input type="number" id="at-uc" value="4" min="0" max="15" autocomplete="off">
+          </div>
+          <div class="field" style="flex:0;min-width:70px">
+            <label>前回増量 (分)</label>
+            <input type="number" id="at-elapsed" value="30" min="0" style="width:70px" autocomplete="off">
+          </div>
+        </div>
+        <div style="margin-bottom:.5rem">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+            <input type="checkbox" id="at-maxdose" style="width:16px;height:16px"> 最大投与量到達
+          </label>
+        </div>
+        <button class="at-btn" onclick="judgeAtonin()">💊 アトニン投与判定</button>
+        <div id="at-result" class="at-result"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /app -->
+</div><!-- /app-screen -->
+
+<script>
+// ===== 定数・状態 =====
+let entries = [];
+let entryDocIds = [];
+const chips = {};
+let accelState = null;
+let decelMainType = null;
+let atVariability = null;
+let atDecel = null;
+let atDecelType = null;
+
+// FHRレベルテーブル（産科GL表II-1〜5）
+const LEVEL_TABLE = {
+  normal:{none:{normal:1,tachycardia:2,bradycardia:3,bradycardia_severe:4},early:{normal:2,tachycardia:2,bradycardia:3,bradycardia_severe:4},variable_mild:{normal:2,tachycardia:3,bradycardia:3,bradycardia_severe:4},variable_severe:{normal:3,tachycardia:3,bradycardia:4,bradycardia_severe:4},late_mild:{normal:3,tachycardia:3,bradycardia:4,bradycardia_severe:4},late_severe:{normal:3,tachycardia:4,bradycardia:4,bradycardia_severe:4},prolonged_mild:{normal:3,tachycardia:3,bradycardia:4,bradycardia_severe:4},prolonged_severe:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4}},
+  decrease:{none:{normal:2,tachycardia:3,bradycardia:4,bradycardia_severe:5},early:{normal:3,tachycardia:3,bradycardia:4,bradycardia_severe:5},variable_mild:{normal:3,tachycardia:4,bradycardia:4,bradycardia_severe:5},variable_severe:{normal:4,tachycardia:4,bradycardia:5,bradycardia_severe:5},late_mild:{normal:4,tachycardia:4,bradycardia:5,bradycardia_severe:5},late_severe:{normal:4,tachycardia:5,bradycardia:5,bradycardia_severe:5},prolonged_mild:{normal:4,tachycardia:4,bradycardia:5,bradycardia_severe:5},prolonged_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5}},
+  absent:{none:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},early:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},variable_mild:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},variable_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},late_mild:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},late_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},prolonged_mild:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},prolonged_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5}},
+  increase:{none:{normal:2,tachycardia:2,bradycardia:2,bradycardia_severe:2},early:{normal:2,tachycardia:2,bradycardia:2,bradycardia_severe:2},variable_mild:{normal:3,tachycardia:3,bradycardia:3,bradycardia_severe:3},variable_severe:{normal:3,tachycardia:3,bradycardia:3,bradycardia_severe:3},late_mild:{normal:3,tachycardia:3,bradycardia:3,bradycardia_severe:3},late_severe:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},prolonged_mild:{normal:3,tachycardia:3,bradycardia:3,bradycardia_severe:3},prolonged_severe:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4}},
+  sinusoidal:{none:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},early:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},variable_mild:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},variable_severe:{normal:4,tachycardia:4,bradycardia:4,bradycardia_severe:4},late_mild:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},late_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},prolonged_mild:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5},prolonged_severe:{normal:5,tachycardia:5,bradycardia:5,bradycardia_severe:5}}
+};
+const LEVEL_COLORS={1:['#E8F5E9','#1B5E20'],2:['#F1F8E9','#33691E'],3:['#FFF8E1','#F57F17'],4:['#FBE9E7','#BF360C'],5:['#FCEBEB','#A32D2D']};
+const LEVEL_LABELS={1:'レベル1 — 正常',2:'レベル2 — 正常範囲内（経過観察）',3:'レベル3 — 要注意（準備・対応開始）',4:'レベル4 — 胎児機能不全疑い（医師報告）',5:'レベル5 — 重度胎児機能不全（緊急対応）'};
+
+function getFhrBase(bpm){
+  if(!bpm)return null;
+  const v=parseInt(bpm);
+  if(v<80)return'bradycardia_severe';
+  if(v<110)return'bradycardia';
+  if(v<=160)return'normal';
+  return'tachycardia';
+}
+function getFhrBaseName(k){return{normal:'正常脈',tachycardia:'頻脈(>160)',bradycardia:'徐脈(80-109)',bradycardia_severe:'徐脈(<80)'}[k]||k}
+
+// ===== ユーティリティ =====
+let fontanelState = null;
+
+function onParityChange(){
+  const val = document.getElementById('parity').value;
+  const prevInfo = document.getElementById('prev-info');
+  prevInfo.style.display = (val && val !== '0') ? 'block' : 'none';
+}
+
+function setFontanel(val, el){
+  fontanelState = val;
+  document.querySelectorAll('[onclick*="setFontanel"]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  calcRotation();
+}
+
+function calcRotation(){
+  const hour = parseInt(document.getElementById('rotation-hour').value||0);
+  const el = document.getElementById('rotation-result');
+  if(!hour || !fontanelState){ el.style.display='none'; return; }
+
+  // 時計方向＋泉門から胎位を判定
+  // 小泉門（後頭部）の位置で判定
+  let posName='', isNormal=false;
+  if(fontanelState==='small'){
+    // 小泉門=後頭部の位置
+    if(hour===12){ posName='前方後頭位'; isNormal=true; }
+    else if(hour===11||hour===1){ posName='前方後頭位（やや斜位）'; isNormal=true; }
+    else if(hour===10||hour===2){ posName='第1/第2斜位'; isNormal=false; }
+    else if(hour===9||hour===3){ posName='低在横定位'; isNormal=false; }
+    else if(hour===8||hour===4){ posName='後方斜位'; isNormal=false; }
+    else if(hour===6){ posName='後方後頭位'; isNormal=false; }
+    else { posName='回旋異常の可能性'; isNormal=false; }
+  } else {
+    // 大泉門=前頭部の位置（後頭部はその反対）
+    if(hour===6){ posName='前方後頭位（大泉門が6時）'; isNormal=true; }
+    else if(hour===5||hour===7){ posName='前方後頭位（やや斜位）'; isNormal=true; }
+    else if(hour===12){ posName='後方後頭位（大泉門が12時）'; isNormal=false; }
+    else { posName='回旋異常の可能性あり'; isNormal=false; }
+  }
+
+  const fontName = fontanelState==='small'?'小泉門':'大泉門';
+  const label = hour+'時方向に'+fontName+'触知：'+posName;
+  el.style.display='block';
+  el.style.background = isNormal?'#E8F5E9':'#FFF3E0';
+  el.style.color = isNormal?'#1B5E20':'#E65100';
+  el.style.border = '1px solid '+(isNormal?'#A5D6A7':'#FFB74D');
+  el.textContent = label;
+}
+
+function getRotationText(){
+  const el = document.getElementById('rotation-result');
+  return (el && el.style.display!=='none') ? el.textContent : '';
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function nowTime(){const d=new Date();return{h:d.getHours(),m:String(d.getMinutes()).padStart(2,'0')}}
+function getRecTime(){const h=document.getElementById('rec-h').value||'--';const m=String(document.getElementById('rec-m').value||'--').padStart(2,'0');return h+':'+m}
+function autoFocus(el,digits,nextId){const v=el.value.replace(/[^0-9]/g,'');if(v.length>=digits){const n=document.getElementById(nextId);if(n){n.value='';n.focus();n.select()}}}
+
+// チップ操作
+function tog(el){
+  const k=el.dataset.key;
+  const wasOn=el.classList.contains('on');
+  el.classList.toggle('on');
+  if(wasOn)delete chips[k]; else chips[k]=true;
+}
+function togUC(key,el){
+  ['uc-weak','uc-norm','uc-strong'].forEach(k=>{
+    delete chips[k];
+    document.querySelectorAll('[onclick*="togUC(\''+k+'\'"]').forEach(e=>e.classList.remove('on'));
+  });
+  document.querySelectorAll('[onclick*="togUC(\''+key+'\'"]').forEach(e=>e.classList.remove('on'));
+  if(!chips[key]){chips[key]=true;el.classList.add('on');}
+}
+function togROM(key,el){
+  ['rom-none','rom-clear','rom-mec','rom-blood'].forEach(k=>{delete chips[k];});
+  document.querySelectorAll('[onclick*="togROM"]').forEach(e=>e.classList.remove('on'));
+  if(!chips[key]){chips[key]=true;el.classList.add('on');}
+}
+function setAccel(val,el){
+  accelState=val;
+  document.querySelectorAll('[onclick*="setAccel"]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// 一過性徐脈（フォーム）
+function setDecelMain(val,el){
+  decelMainType=val;
+  document.querySelectorAll('[onclick*="setDecelMain"]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  ['variable','late','prolonged'].forEach(t=>{
+    document.getElementById('main-decel-'+t).style.display=(val===t)?'block':'none';
+  });
+  document.getElementById('main-decel-sev').style.display='none';
+  calcMainDecelSev();
+  calcFhrLevelMain();
+}
+function calcMainDecelSev(){
+  const sev=_calcDecelSev(decelMainType,
+    document.getElementById('md-var-nadir')?.value,
+    document.getElementById('md-var-dur')?.value,
+    document.getElementById('md-late-drop')?.value,
+    document.getElementById('md-pro-nadir')?.value
+  );
+  const el=document.getElementById('main-decel-sev');
+  _showDecelSev(el,decelMainType,sev);
+  calcFhrLevelMain();
+}
+function _calcDecelSev(type,varNadir,varDur,lateDrop,proNadir){
+  if(!type||type==='none'||type==='early')return null;
+  if(type==='variable'){
+    const n=parseInt(varNadir||999),d=parseInt(varDur||0);
+    if(n<70&&d>=30)return'severe';
+    if(n>=70&&n<80&&d>=60)return'severe';
+    if(n<999||d>0)return'mild';
+  }
+  if(type==='late'){const dr=parseInt(lateDrop||0);if(dr>0)return dr>=15?'severe':'mild';}
+  if(type==='prolonged'){const n=parseInt(proNadir||999);if(n<999)return n<80?'severe':'mild';}
+  return null;
+}
+function _showDecelSev(el,type,sev){
+  if(!sev){el.style.display='none';return;}
+  const names={variable:'変動',late:'遅発',prolonged:'遷延'};
+  const label=(names[type]||type)+'一過性徐脈：'+(sev==='severe'?'高度':'軽度');
+  const bg=sev==='severe'?'#FCEBEB':'#FFF3E0';
+  const color=sev==='severe'?'#A32D2D':'#E65100';
+  el.style.display='block';el.style.background=bg;el.style.color=color;el.style.border='1px solid '+color+'44';
+  el.textContent=label;
+}
+function getMainDecelKey(){
+  if(!decelMainType||decelMainType==='none')return'none';
+  if(decelMainType==='early')return'early';
+  const sev=_calcDecelSev(decelMainType,
+    document.getElementById('md-var-nadir')?.value,
+    document.getElementById('md-var-dur')?.value,
+    document.getElementById('md-late-drop')?.value,
+    document.getElementById('md-pro-nadir')?.value
+  );
+  return sev?decelMainType+'_'+sev:null;
+}
+function calcFhrLevelMain(){
+  const bpm=document.getElementById('fhr').value;
+  const vari=document.getElementById('fhr-variability').value;
+  const base=getFhrBase(bpm);
+  const decelKey=getMainDecelKey();
+  const el=document.getElementById('fhr-level-main');
+  if(!base||!vari||!decelKey){el.style.display='none';return;}
+  const level=(LEVEL_TABLE[vari]?.[decelKey]?.[base])||null;
+  if(!level){el.style.display='none';return;}
+  const [bg,color]=LEVEL_COLORS[level];
+  el.style.display='block';el.style.background=bg;el.style.color=color;el.style.border='1px solid '+color+'44';
+  el.textContent=LEVEL_LABELS[level];
+  el.dataset.level=level;
+}
+
+// アトニンFHRレベル
+function setAtV(val,el){
+  atVariability=val;
+  document.querySelectorAll('[data-atv]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  calcAtFhrLevel();
+}
+function setAtDecelType(val,el){
+  atDecelType=val;
+  document.querySelectorAll('[data-dtype]').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  ['variable','late','prolonged'].forEach(t=>{
+    document.getElementById('at-decel-'+t).style.display=(val===t)?'block':'none';
+  });
+  document.getElementById('at-decel-sev').style.display='none';
+  calcAtDecelSev();
+  calcAtFhrLevel();
+}
+function calcAtDecelSev(){
+  const sev=_calcDecelSev(atDecelType,
+    document.getElementById('at-var-nadir')?.value,
+    document.getElementById('at-var-dur')?.value,
+    document.getElementById('at-late-drop')?.value,
+    document.getElementById('at-pro-nadir')?.value
+  );
+  const el=document.getElementById('at-decel-sev');
+  _showDecelSev(el,atDecelType,sev);
+  if(sev)atDecel=atDecelType+'_'+sev;
+  else if(atDecelType==='none')atDecel='none';
+  else if(atDecelType==='early')atDecel='early';
+  else atDecel=null;
+  calcAtFhrLevel();
+}
+function calcAtFhrLevel(){
+  const bpm=document.getElementById('at-fhr').value;
+  const base=getFhrBase(bpm);
+  const lbl=document.getElementById('at-fhr-label');
+  if(base)lbl.textContent='→ '+getFhrBaseName(base); else lbl.textContent='';
+  const el=document.getElementById('at-level-result');
+  if(!base||!atVariability||!atDecel){el.style.display='none';return;}
+  const level=(LEVEL_TABLE[atVariability]?.[atDecel]?.[base])||null;
+  if(!level){el.style.display='none';return;}
+  const [bg,color]=LEVEL_COLORS[level];
+  el.style.display='block';el.style.background=bg;el.style.color=color;el.style.border='1px solid '+color+'44';
+  el.textContent=LEVEL_LABELS[level];el.dataset.level=level;
+}
+
+// アトニン判定
+function judgeAtonin(){
+  const btn=document.querySelector('.at-btn');
+  const resultEl=document.getElementById('at-result');
+  const fhrLevelEl=document.getElementById('at-level-result');
+  const fhrLevel=fhrLevelEl.style.display!=='none'?parseInt(fhrLevelEl.dataset.level||0):null;
+  const dose=document.getElementById('at-dose').value;
+  const uc=document.getElementById('at-uc').value;
+  const elapsed=document.getElementById('at-elapsed').value;
+  const maxDose=document.getElementById('at-maxdose').checked;
+
+  if(!fhrLevel){alert('FHR情報を入力してレベルを確認してください');return;}
+
+  btn.disabled=true;btn.textContent='判定中...';
+  let judge='',reasons=[],cls='at-hold';
+
+  if(fhrLevel>=5){
+    judge='中止';cls='at-stop';
+    reasons.push('重度胎児機能不全（レベル5）→ 即時中止（CQ415-3 Answer2-1）');
+  } else if(fhrLevel>=3&&parseInt(uc||0)>5){
+    judge='減量・中止';cls='at-stop';
+    reasons.push('胎児機能不全疑い（レベル'+fhrLevel+'）かつ子宮頻収縮（>5回/10分）→ 1/2以下へ減量または中止（CQ415-3 Answer2-2）');
+  } else if(parseInt(uc||0)>5){
+    judge='減量・中止検討';cls='at-decrease';
+    reasons.push('子宮頻収縮（'+uc+'回/10分 >5回）→ 過強陣痛を疑い減量または中止を検討（CQ415-3 Answer2）');
+  } else if(fhrLevel>=3){
+    judge='減量検討';cls='at-decrease';
+    reasons.push('胎児機能不全疑い（レベル'+fhrLevel+'）→ 状態確認・減量を検討（CQ415-3 Answer2）');
+  } else if(maxDose){
+    judge='現状維持（最大量）';cls='at-hold';
+    reasons.push('最大投与量到達 → 増量不可（CQ415-1参照）');
+  } else {
+    const condFhr=fhrLevel<=2;
+    const condUC=parseInt(uc||0)<=5;
+    const condElapsed=parseInt(elapsed||0)>=30;
+    const condMax=!maxDose;
+    if(condFhr&&condUC&&condElapsed&&condMax){
+      judge='増量可';cls='at-increase';
+      reasons.push('胎児機能不全なし（レベル'+fhrLevel+'）（CQ415-3 Answer1-2）');
+      reasons.push('子宮頻収縮なし（'+uc+'回/10分）（CQ415-3 Answer1-3）');
+      reasons.push('前回増量から'+elapsed+'分経過・30分以上（CQ415-3 Answer1-4）');
+    } else {
+      judge='現状維持';cls='at-hold';
+      if(!condFhr)reasons.push('FHRレベル'+fhrLevel+' → 増量前に状態改善を確認');
+      if(!condUC)reasons.push('子宮頻収縮（'+uc+'回/10分）→ 増量条件を満たさず');
+      if(!condElapsed&&elapsed)reasons.push('前回増量から'+elapsed+'分 → 30分未満のため増量不可（CQ415-3）');
+      if(!condElapsed&&!elapsed)reasons.push('前回増量からの経過時間を入力してください');
+    }
+  }
+
+  if(cls==='at-increase'){
+    const next=(parseInt(dose||0)+10);
+    document.getElementById('at-dose').value=next;
+  }
+
+  const colorMap={'at-increase':['#E8F5E9','#1B5E20'],'at-hold':['#E3F2FD','#1565C0'],'at-decrease':['#FFF3E0','#E65100'],'at-stop':['#FCEBEB','#A32D2D']};
+  const labelMap={'at-increase':'⬆️ 増量可','at-hold':'➡️ 現状維持','at-decrease':'⬇️ 減量検討','at-stop':'🛑 中止'};
+  const [bg,color]=colorMap[cls];
+  resultEl.style.display='block';resultEl.style.background=bg;resultEl.style.border='1px solid '+color+'44';
+  resultEl.innerHTML='<div style="font-size:13px;font-weight:800;color:'+color+';margin-bottom:.4rem">'+labelMap[cls]+'　'+judge+'</div><div style="font-size:11px;color:#555;line-height:1.8">'+reasons.map(r=>'・'+r).join('<br>')+'</div><div style="font-size:10px;color:#aaa;margin-top:.4rem">根拠：産科診療ガイドライン CQ415-2 / CQ415-3</div>';
+
+  // アトニンエントリーをログに追加
+  const doseStr=dose?dose+'mU/分':'';
+  const oStr=['FHRレベル'+(fhrLevel||'?'),doseStr,'収縮'+(uc||'?')+'回/10分'].filter(Boolean).join('、');
+  const pStr=labelMap[cls]+'　'+judge+'\n'+reasons.map(r=>'・'+r).join('\n');
+  const entry={time:getRecTime(),mode:'atonin',s:'（アトニン管理）',o:oStr,aRaw:'産科診療ガイドライン CQ415-2 / CQ415-3',pRaw:pStr,isAtonin:true,atoninCls:cls,atoninColor:color,atoninBg:bg};
+  entries.push(entry);
+  entryDocIds.push(null);
+  renderEntries();
+  saveEntryToFirebase(entry,entries.length-1);
+
+  btn.disabled=false;btn.textContent='💊 アトニン投与判定';
+}
+
+// ===== SOAP生成 =====
+async function generateSOAP(){
+  const btn=document.getElementById('go-btn');
+  btn.disabled=true;
+  document.getElementById('spin-wrap').style.display='block';
+  document.getElementById('spin-msg').textContent='4冊の資料を参照中...';
+
+  try{
+    const oData=buildOData();
+    const prompt=buildSOAPPrompt(oData);
+
+    const resp=await fetch('https://bunben-api.align-mw-care.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data=await resp.json();
+    const text=data.content?.map(i=>i.text||'').join('');
+
+    let parsed={a:'',p:'',report_level:'',next_obs:'',stage:''};
+    try{
+      const clean=text.replace(/```json|```/g,'').trim();
+      parsed=JSON.parse(clean);
+    }catch(e){parsed.a=text;parsed.p='（解析エラー）';}
+
+    const sText=document.getElementById('s-text').value.trim();
+    const pExtra=document.getElementById('p-extra').value.trim();
+    const pChips=Object.keys(chips).filter(k=>k.startsWith('p-')).map(k=>({
+      'p-left':'左側臥位','p-o2':'酸素投与','p-cath':'導尿','p-dr':'医師報告','p-ctg':'CTG強化',
+      'p-ie':'内診','p-push':'努責介助','p-ivf':'輸液','p-move':'体位変換','p-wait':'経過観察'
+    }[k]).filter(Boolean)).join('、');
+    let pRaw=parsed.p||'';
+    if(pChips)pRaw=(pChips+'\n'+pRaw).trim();
+    if(pExtra)pRaw=(pRaw+'\n'+pExtra).trim();
+
+    const entry={
+      time:getRecTime(),mode:'rec',
+      s:sText||'（なし）',
+      o:buildOText(oData),
+      aRaw:parsed.a||'（エラー）',
+      pRaw,
+      reportLevel:parsed.report_level||'',
+      nextObs:parsed.next_obs||'',
+      stage:parsed.stage||'',
+      oData
+    };
+    entries.push(entry);
+    entryDocIds.push(null);
+    renderEntries();
+    updatePtBar(entry);
+    saveEntryToFirebase(entry,entries.length-1);
+    resetForm();
+
+    if(entries.length>=1){
+      document.getElementById('summary-btn-wrap').style.display='block';
+    }
+  }catch(e){
+    alert('エラー: '+e.message);
+  }finally{
+    document.getElementById('spin-wrap').style.display='none';
+    btn.disabled=false;
+  }
+}
+
+function buildOData(){
+  return{
+    os:document.getElementById('os').value,
+    effacement:document.getElementById('effacement').value,
+    station:document.getElementById('station').value,
+    rotation: getRotationText(),
+    caput:chips['caput'],molding:chips['molding'],
+    fhr:document.getElementById('fhr').value,
+    fhrVariability:document.getElementById('fhr-variability').value,
+    accel:accelState,
+    decelMain:decelMainType,
+    fhrLevel:document.getElementById('fhr-level-main').dataset.level||null,
+    bpSys:document.getElementById('bp-sys').value,
+    bpDia:document.getElementById('bp-dia').value,
+    bt:document.getElementById('bt').value,
+    pulse:document.getElementById('pulse').value,
+    ucInterval:document.getElementById('uc-interval').value,
+    ucDuration:document.getElementById('uc-duration').value,
+    ucCount:document.getElementById('uc-count').value,
+    ucStrength:Object.keys(chips).find(k=>['uc-weak','uc-norm','uc-strong'].includes(k))||'',
+    tonus:chips['tonus-high']?'亢進':'正常',
+    romStatus:Object.keys(chips).find(k=>['rom-none','rom-clear','rom-mec','rom-blood'].includes(k))||'',
+    romSmell:chips['rom-smell-yes']?'あり':'なし',
+    afAmount:chips['af-poly']?'多い':chips['af-oligo']?'少ない':'正常',
+    urineOut:document.getElementById('urine-out').value,
+    nrs:document.getElementById('nrs').value,
+    bleeding:chips['bl-heavy']?'多量':chips['bl-show']?'産徴程度':'なし',
+    fatigue:chips['fat-severe']?'高度':chips['fat-mild']?'軽度':'なし',
+    face:chips['face-panic']?'パニック状態':chips['face-tense']?'緊張':chips['face-calm']?'落ち着いている':'',
+    anxiety:chips['anx-severe']?'強い':chips['anx-mild']?'軽度':'なし',
+    parity:document.getElementById('parity').value,
+    gaW:document.getElementById('ga-w').value,
+    gaD:document.getElementById('ga-d').value,
+    induced:chips['induced'],atonin:chips['atonin-use'],gbs:chips['gbs'],epi:chips['epi'],prevCs:chips['prev-cs'],prevPph:chips['prev-pph'],
+    romH:document.getElementById('rom-h').value,romM:document.getElementById('rom-m').value,
+  };
+}
+
+function buildOText(d){
+  const parts=[];
+  if(d.os)parts.push('子宮口'+d.os+'cm');
+  if(d.effacement)parts.push('展退'+d.effacement+'%');
+  if(d.station)parts.push('Station'+d.station);
+  if(d.rotation)parts.push(d.rotation);
+  if(d.caput)parts.push('産瘤あり');
+  if(d.molding)parts.push('骨重積あり');
+  if(d.ucInterval)parts.push('陣痛間隔'+d.ucInterval+'分');
+  if(d.ucDuration)parts.push('持続'+d.ucDuration+'秒');
+  if(d.ucCount)parts.push(d.ucCount+'回/10分');
+  if(d.fhr)parts.push('FHR '+d.fhr+'bpm');
+  if(d.fhrVariability)parts.push('細変動:'+d.fhrVariability);
+  if(d.accel)parts.push('加速波:'+d.accel);
+  if(d.decelMain&&d.decelMain!=='none')parts.push('一過性徐脈:'+d.decelMain);
+  if(d.bpSys&&d.bpDia)parts.push('BP '+d.bpSys+'/'+d.bpDia);
+  if(d.bt)parts.push('BT '+d.bt+'℃');
+  if(d.pulse)parts.push('PR '+d.pulse);
+  if(d.romStatus)parts.push(d.romStatus==='rom-none'?'破水なし':d.romStatus==='rom-clear'?'透明羊水':d.romStatus==='rom-mec'?'混濁羊水':'血性羊水');
+  if(d.nrs)parts.push('NRS '+d.nrs);
+  if(d.bleeding&&d.bleeding!=='なし')parts.push('出血:'+d.bleeding);
+  return parts.join('、');
+}
+
+function buildSOAPPrompt(d){
+  const parityName=d.parity==='0'?'初産婦':d.parity?'経産'+d.parity+'回':'不明';
+  const ga=d.gaW?d.gaW+'w'+(d.gaD?d.gaD+'d':''):'不明';
+  const flags=[d.induced&&'誘発分娩',d.atonin&&'アトニン使用',d.gbs&&'GBS陽性',d.epi&&'硬膜外麻酔',d.prevCs&&'前回帝王切開'].filter(Boolean).join('、');
+  const oText=buildOText(d);
+
+  return `あなたは助産師のSOAP記録を支援するAIです。以下の4つのアセスメント資料に基づいて、分娩経過のA（アセスメント）とP（計画）を生成してください。
+
+【アセスメント資料の要点】
+■今日の助産より：
+- 分娩第1期活動期：子宮口5cm以上
+- 正常陣痛間隔：子宮口4-6cmで3分、7-8cmで2.5分、9-10cmで2分
+- 微弱陣痛：子宮口4-6cmで6.5分以上、7-8cmで6分以上
+- FHR正常：110-160bpm、基線細変動6bpm以上、一過性徐脈なし
+- リスク：発熱38℃以上、頻脈100以上、BP140/90以上、FHR異常
+- 回旋異常（後方後頭位・低在横定位）は体位変換で対応
+- 疲労・不安は微弱陣痛のリスク因子
+
+■産科診療ガイドラインより：
+- FHR波形レベル1-5分類（レベル3以上=胎児機能不全）
+- レベル3:監視強化・保存的処置、レベル4:急速遂娩準備、レベル5:急速遂娩実行
+- CQ415：アトニン増量条件（FHRレベル1-2、収縮≦5回/10分、30分以上経過）
+- 突然の高度徐脈：左側臥位、酸素、Dr報告、原因検索
+- 羊水混濁+CTG異常：児死亡率・罹病率が有意に増加（OR 2.49）
+
+■THE分娩より：
+- 分娩進行の正常評価：回旋・下降度・陣痛の協調性
+- 努責は子宮口全開大+Station+1以降が原則
+- 過強陣痛・トーヌス亢進は胎児機能不全のリスク
+
+【産婦情報】
+- ${parityName}、${ga}
+- ${flags||'特記なし'}
+
+【現在のO（客観的情報）】
+${oText}
+${d.fhrLevel?'FHRレベル：'+d.fhrLevel:''}
+
+以下のJSON形式で出力してください（他のテキストは不要）：
+{
+  "stage": "分娩第1期潜伏期/活動期/移行期/第2期/第3期のいずれか",
+  "a": "アセスメント文（2-3文、教科書の数値基準を引用して根拠を明示）",
+  "p": "計画（実施済み・予定を箇条書き、・で区切る）",
+  "report_level": "経過観察/Dr報告推奨/Dr報告必須/緊急対応 のいずれか",
+  "next_obs": "次回観察の推奨タイミング（例：30分後）"
+}`;
+}
+
+// ===== レンダリング =====
+function renderEntries(){
+  const wrap=document.getElementById('entries-wrap');
+  const empty=document.getElementById('empty-state');
+  if(!entries.length){empty.style.display='block';wrap.innerHTML='';wrap.appendChild(empty);return;}
+  empty.style.display='none';
+  wrap.innerHTML='';
+  entries.forEach((e,i)=>{
+    const card=document.createElement('div');
+    card.className='entry-card';
+    if(e.isAtonin){
+      card.innerHTML=`
+        <div class="entry-head" style="background:#FFF8EE;border-bottom:.5px solid #e0d0a0">
+          <span class="entry-time">⏰ ${esc(e.time)}</span>
+          <span class="entry-mode-badge" style="background:#FAEEDA;color:#854F0B">💊 アトニン</span>
+          <span class="entry-summary">${esc(e.o)}</span>
+          <button class="copy-btn" onclick="copyEntry(${i},this)">📋</button>
+          <button class="del-btn" onclick="deleteEntry(${i})">×</button>
+        </div>
+        <div class="entry-body">
+          <div style="font-size:13px;font-weight:800;color:${esc(e.atoninColor)};margin-bottom:.3rem">${esc(e.pRaw.split('\n')[0])}</div>
+          <div style="font-size:11px;color:#555;line-height:1.8;white-space:pre-wrap">${esc(e.pRaw.split('\n').slice(1).join('\n'))}</div>
+          <div style="font-size:10px;color:#aaa;margin-top:.3rem">根拠：産科診療ガイドライン CQ415-2 / CQ415-3</div>
+        </div>`;
+    } else {
+      const rlColor={'経過観察':'#2E7D32','Dr報告推奨':'#F57F17','Dr報告必須':'#E64A19','緊急対応':'#C62828'}[e.reportLevel]||'#888';
+      const rlBg={'経過観察':'#E8F5E9','Dr報告推奨':'#FFF3E0','Dr報告必須':'#FBE9E7','緊急対応':'#FCEBEB'}[e.reportLevel]||'#f0f0f0';
+      card.innerHTML=`
+        <div class="entry-head mode-rec">
+          <span class="entry-time">⏰ ${esc(e.time)}</span>
+          ${e.stage?'<span class="entry-mode-badge" style="background:#E8EAF6;color:#283593">'+esc(e.stage)+'</span>':''}
+          ${e.reportLevel?'<span class="entry-mode-badge" style="background:'+rlBg+';color:'+rlColor+'">'+esc(e.reportLevel)+'</span>':''}
+          <span class="entry-summary">S: ${esc(e.s)}</span>
+          <button class="copy-btn" onclick="copyEntry(${i},this)">📋</button>
+          <button class="del-btn" onclick="deleteEntry(${i})">×</button>
+        </div>
+        <div class="entry-body">
+          <div class="soap-label">S</div><div class="soap-text">${esc(e.s)}</div>
+          <div class="soap-label">O</div><div class="soap-text">${esc(e.o)}</div>
+          <div class="soap-label">A</div><div class="soap-text">${esc(e.aRaw)}</div>
+          <div class="soap-label">P</div><div class="soap-text">${esc(e.pRaw)}</div>
+          ${e.nextObs?'<div style="font-size:10px;color:#888;margin-top:.4rem">🕐 次回観察：'+esc(e.nextObs)+'</div>':''}
+        </div>`;
+    }
+    wrap.appendChild(card);
+  });
+}
+
+function updatePtBar(e){
+  const bar=document.getElementById('pt-bar');
+  if(!e.oData){return;}
+  const d=e.oData;
+  bar.style.display='block';
+  const parEl=document.getElementById('pt-parity');
+  parEl.textContent=d.parity==='0'?'初産婦':d.parity?'経産'+d.parity+'回':'';
+  document.getElementById('pt-week').textContent=d.gaW?d.gaW+'w'+(d.gaD?d.gaD+'d':''):'';
+  document.getElementById('pt-updated').textContent='最終更新：'+e.time;
+  const vitals=[];
+  if(d.os)vitals.push('<div class="pt-v">子宮口 <span>'+d.os+'cm</span></div>');
+  if(d.station)vitals.push('<div class="pt-v">Station <span>'+d.station+'</span></div>');
+  if(d.ucInterval)vitals.push('<div class="pt-v">陣痛 <span>'+d.ucInterval+'分</span></div>');
+  if(d.fhr)vitals.push('<div class="pt-v">FHR <span>'+d.fhr+'bpm</span></div>');
+  if(d.romStatus&&d.romStatus!=='rom-none'){const rn={'rom-clear':'透明','rom-mec':'混濁','rom-blood':'血性'};vitals.push('<div class="pt-v">羊水 <span>'+(rn[d.romStatus]||'')+'</span></div>');}
+  document.getElementById('pt-vitals').innerHTML=vitals.join('');
+}
+
+function deleteEntry(i){
+  if(!confirm('この記録を削除しますか？'))return;
+  const docId=entryDocIds[i];
+  if(docId&&window._fbUser){
+    const {deleteDoc,doc,collection}=window._fb;
+    deleteDoc(doc(window._fb.db,'users',window._fbUser.uid,'entries',docId)).catch(console.error);
+  }
+  entries.splice(i,1);
+  entryDocIds.splice(i,1);
+  renderEntries();
+  renderSideList();
+}
+
+function copyEntry(i,btn){
+  const e=entries[i];
+  let text='';
+  if(e.isAtonin){
+    text='【アトニン管理】 '+e.time+'\nO: '+e.o+'\n'+e.pRaw;
+  } else {
+    text='【'+e.time+'】\nS: '+e.s+'\nO: '+e.o+'\nA: '+e.aRaw+'\nP: '+e.pRaw;
+  }
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✅';setTimeout(()=>btn.textContent='📋',2000);
+  });
+}
+
+function resetForm(){
+  ['os','effacement','s-text','p-extra','fhr','bp-sys','bp-dia','bt','pulse','uc-interval','uc-duration','uc-count','nrs','urine-out','md-var-nadir','md-var-dur','md-var-rec','md-late-drop','md-late-rec','md-pro-nadir','md-pro-rec'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.value='';
+  });
+  document.querySelectorAll('.chip.on').forEach(e=>e.classList.remove('on'));
+  ['atonin-use','induced','gbs','epi','prev-cs','prev-pph','caput','molding',
+   'rom-none','rom-clear','rom-mec','rom-blood','rom-smell-none','rom-smell-yes',
+   'af-norm','af-poly','af-oligo','tonus-norm','tonus-high',
+   'bl-none','bl-show','bl-heavy','fat-none','fat-mild','fat-severe',
+   'face-calm','face-tense','face-panic','anx-none','anx-mild','anx-severe',
+   'uc-weak','uc-norm','uc-strong',
+   'p-left','p-o2','p-cath','p-dr','p-ctg','p-ie','p-push','p-ivf','p-move','p-wait'
+  ].forEach(k=>delete chips[k]);
+  decelMainType=null;accelState=null;
+  document.querySelectorAll('[onclick*="setDecelMain"],[onclick*="setAccel"]').forEach(e=>e.classList.remove('on'));
+  ['variable','late','prolonged'].forEach(t=>{
+    const el=document.getElementById('main-decel-'+t);if(el)el.style.display='none';
+  });
+  document.getElementById('main-decel-sev').style.display='none';
+  document.getElementById('fhr-level-main').style.display='none';
+  document.getElementById('at-result').style.display='none';
+  const t=nowTime();
+  document.getElementById('rec-h').value=t.h;
+  document.getElementById('rec-m').value=t.m;
+}
+
+// ===== サイドパネル =====
+function openSidePanel(){
+  document.getElementById('side-panel').classList.add('open');
+  document.getElementById('side-overlay').classList.add('open');
+  renderSideList();
+}
+function closeSidePanel(){
+  document.getElementById('side-panel').classList.remove('open');
+  document.getElementById('side-overlay').classList.remove('open');
+}
+function renderSideList(){
+  const list=document.getElementById('side-list');
+  if(!entries.length){list.innerHTML='<div class="side-empty">まだ記録がありません</div>';return;}
+  list.innerHTML=entries.map((e,i)=>{
+    const badge=e.isAtonin
+      ?'<span class="side-item-badge" style="background:#FAEEDA;color:#854F0B;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">💊</span>'
+      :'<span class="side-item-badge" style="background:#E8EAF6;color:#283593;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">📝</span>';
+    const preview=e.isAtonin?e.o:('S: '+e.s.substring(0,20)+(e.s.length>20?'…':''));
+    return '<div class="side-item" onclick="jumpToEntry('+i+')"><div class="side-item-time">⏰ '+esc(e.time)+'</div><div class="side-item-s">'+badge+' '+esc(preview)+'</div></div>';
+  }).join('');
+}
+function jumpToEntry(i){
+  closeSidePanel();
+  const cards=document.querySelectorAll('.entry-card');
+  if(cards[i]){cards[i].scrollIntoView({behavior:'smooth',block:'center'});cards[i].style.outline='2px solid #283593';setTimeout(()=>cards[i].style.outline='',1500);}
+}
+// スワイプ閉じ
+(function(){
+  let sx=0,sy=0;
+  const panel=document.getElementById('side-panel');
+  panel.addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY;},{passive:true});
+  panel.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=Math.abs(e.changedTouches[0].clientY-sy);
+    if(dx<-40&&dy<60)closeSidePanel();
+  },{passive:true});
+})();
+
+// アコーディオン
+function toggleAcc(head){
+  const body=head.nextElementSibling;
+  const chevron=head.querySelector('.acc-chevron');
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  chevron.classList.toggle('open',!isOpen);
+}
+
+// ===== 経過サマリー =====
+async function generateSummary(){
+  if(!entries.length){alert('記録がありません');return;}
+  document.getElementById('summary-modal').classList.add('open');
+  document.getElementById('summary-content').innerHTML='<div class="spin-wrap"><span class="spin"></span>サマリーを生成中...</div>';
+
+  const soapEntries=entries.filter(e=>!e.isAtonin);
+  const atoninEntries=entries.filter(e=>e.isAtonin);
+
+  const timeline=soapEntries.map(e=>`${e.time}: O=${e.o} | A=${e.aRaw.substring(0,80)} | P=${e.pRaw.substring(0,60)}`).join('\n');
+  const atoninLog=atoninEntries.map(e=>`${e.time}: ${e.pRaw.split('\n')[0]}`).join('\n');
+
+  const firstEntry=soapEntries[0];
+  const d=firstEntry?.oData||{};
+
+  const prompt=`分娩経過の時系列記録から、診療録として使える分娩経過サマリーを生成してください。
+
+【産婦基本情報】
+- ${d.parity==='0'?'初産婦':d.parity?'経産'+d.parity+'回':''}
+- ${d.gaW?d.gaW+'w'+(d.gaD?d.gaD+'d':''):''}
+- ${[d.induced&&'誘発分娩',d.atonin&&'アトニン使用',d.gbs&&'GBS陽性',d.epi&&'硬膜外麻酔'].filter(Boolean).join('、')||'特記なし'}
+
+【時系列記録】
+${timeline||'なし'}
+
+【アトニン管理記録】
+${atoninLog||'なし'}
+
+以下の形式で分娩経過サマリーを生成してください（JSON不要、そのまま使える文章で）：
+- 簡潔で読みやすい日本語
+- 時刻を明記
+- 異常所見・医師報告・処置を明記
+- 最後に母児の状態でまとめる
+- 400〜600文字程度`;
+
+  try{
+    const resp=await fetch('https://bunben-api.align-mw-care.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    const text=data.content?.map(i=>i.text||'').join('')||'生成に失敗しました';
+    document.getElementById('summary-content').innerHTML='<div class="summary-text" id="summary-text">'+esc(text)+'</div>';
+  }catch(e){
+    document.getElementById('summary-content').innerHTML='<div style="color:#C62828">エラー: '+esc(e.message)+'</div>';
+  }
+}
+function closeSummaryModal(){document.getElementById('summary-modal').classList.remove('open');}
+function copySummary(){
+  const el=document.getElementById('summary-text');
+  if(!el)return;
+  navigator.clipboard.writeText(el.textContent).then(()=>alert('コピーしました'));
+}
+let summaryEditMode=false;
+function toggleSummaryEdit(){
+  const content=document.getElementById('summary-content');
+  const textEl=document.getElementById('summary-text');
+  if(!textEl)return;
+  if(!summaryEditMode){
+    const textarea=document.createElement('textarea');
+    textarea.className='summary-edit';
+    textarea.id='summary-edit-area';
+    textarea.value=textEl.textContent;
+    content.innerHTML='';
+    content.appendChild(textarea);
+    summaryEditMode=true;
+  } else {
+    const ta=document.getElementById('summary-edit-area');
+    const text=ta.value;
+    content.innerHTML='<div class="summary-text" id="summary-text">'+esc(text)+'</div>';
+    summaryEditMode=false;
+  }
+}
+
+async function saveEntryToFirebase(entry,index){
+  if(!window._fbUser)return;
+  const {collection,addDoc,serverTimestamp}=window._fb;
+  try{
+    const docRef=await addDoc(collection(window._fb.db,'users',window._fbUser.uid,'entries'),{...entry,createdAt:serverTimestamp()});
+    entryDocIds[index]=docRef.id;
+  }catch(e){console.error('Firebase保存エラー:',e);}
+}
+
+async function loadEntries(){
+  if(!window._fbUser)return;
+  const {collection,getDocs,query,orderBy}=window._fb;
+  try{
+    const q=query(collection(window._fb.db,'users',window._fbUser.uid,'entries'),orderBy('createdAt','asc'));
+    const snap=await getDocs(q);
+    entries=[];entryDocIds=[];
+    snap.forEach(doc=>{entries.push(doc.data());entryDocIds.push(doc.id);});
+    renderEntries();
+    if(entries.length){
+      const last=entries.filter(e=>!e.isAtonin).pop();
+      if(last)updatePtBar(last);
+      document.getElementById('summary-btn-wrap').style.display='block';
+    }
+  }catch(e){console.error('Firebase読み込みエラー:',e);}
+}
+
+// 初期化
+const _t=nowTime();
+document.getElementById('rec-h').value=_t.h;
+document.getElementById('rec-m').value=_t.m;
+document.getElementById('at-dose').value=10;
+document.getElementById('at-uc').value=4;
+document.getElementById('at-elapsed').value=30;
+</script>
+</body>
+</html>
