@@ -4,6 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>初期アセスメント</title>
+
+<!-- ホーム画面に追加したときの見た目（AU指定 2026-08-04）
+     iOSは apple-touch-icon を使う。角丸はOSが付けるため、
+     こちらでは丸めない（丸めると二重になる）。
+     Android・ブラウザは manifest.json の icons を使う。 -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+<meta name="apple-mobile-web-app-title" content="助産師＋">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#254554">
+<link rel="manifest" href="/manifest.json">
 <style>
 :root{
   --paper:#F5F3EF;
