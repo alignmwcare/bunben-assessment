@@ -502,11 +502,6 @@ details.rfold>summary svg{color:var(--report)}
 .sigbox li::before{content:'';position:absolute;left:-12px;top:10px;
   width:4.5px;height:4.5px;border-radius:50%;background:var(--faint)}
 .sigbox .nowsec li::before{background:var(--maternal)}
-/* 見逃せない6病態12件のうち、即報告のものに赤い印と語を付ける（AU裁定 2026-08-10）。
-   畳んだ中に入るため、印だけでは書き出しに残らない。語も併せて置く */
-.sigbox li.imm::before{background:var(--maternal)}
-.sigbox .immtag{margin-left:7px;font-size:10.5px;font-weight:700;letter-spacing:.03em;
-  color:#fff;background:var(--maternal);border-radius:999px;padding:1px 7px;white-space:nowrap}
 .sigbox .arw{color:var(--faint);margin:0 5px}
 .sigbox .dxn{color:var(--muted)}
 .sigbox details.rfold{margin-top:10px}
@@ -4342,57 +4337,64 @@ function renderSignsBox(){
     if(r.length) rest.push([c,r]);
   });
 
+  /* 6病態の索引（ALWAYS_SIGNS）12件は、即報告かどうかで分ける（AU裁定 2026-08-10）。
+     即報告の6件は「すぐ報告する所見」に統合して畳まない。
+     残り6件は独立した箱にして畳む。
+
+     由来（この産婦のものか全例共通か）で分ける案も試したが、
+     それだと即報告6件が畳まれ、「即報告は畳まない。目に入っていること自体が仕事」
+     という決定を外すことになった。可能性が1件も立たない産婦では、
+     開いた画面に即報告が1件も無い状態になっていた。
+
+     12件が2か所に割れることは受け入れる。
+     一回通しで読む文書なので、上から読めば12件とも目に入る。
+     つながりは名前と注記で示す。名前の工夫だけでは伝わらなかったため、
+     下の箱に「即報告の6件は上に出しています」と明記する。 */
+  const sgNow  = ALWAYS_SIGNS.filter(x=>x.now);
+  const sgRest = ALWAYS_SIGNS.filter(x=>!x.now);
+
   /* 行末の「即報告」は見出しと重なるので外す。
      カテゴリが1つしかないときは小見出しを出さない（AU裁定 2026-08-10）。
      分けるものが無いのに分ける見出しがあると、ほかにもあるはずだと探させるため */
   const list = (arr, strip, alone) => arr.map(([c,items])=>
     (alone ? '' : `<div class="cat">${esc(c)}</div>`) + `<ul>${items.map(x=>
       `<li>${esc(strip ? String(x).replace(/\s*即報告\s*$/,'') : x)}</li>`).join('')}</ul>`).join('');
-
-  /* 6病態の索引（ALWAYS_SIGNS）は12件で1つの表。独立した小項目にまとめる
-     （AU裁定 2026-08-10・案d）。
-     以前は「即報告かどうか」で6件ずつに割っていたが、上下が14件離れて表示され、
-     同じ表だと分からなくなっていた。
-     割り方を「この産婦のものか、全例共通か」に変えると、
-       すぐ報告する所見／状況に応じて報告する所見   この産婦の可能性から来たもの
-       見逃せない6病態                            全例共通
-     となり、由来で分かれる。
-     畳むが、即報告の6件には赤い印と「即報告」の語を付ける。
-     書き出しでも語が残るので、印だけに頼らない */
   const sgList = arr => `<ul>${arr.map(x=>
-    `<li${x.now?' class="imm"':''}>${esc(x.sign)}<span class="arw">→</span><span class="dxn">${esc(x.dx)}</span>${
-      x.now?'<span class="immtag">即報告</span>':''}</li>`).join('')}</ul>`;
+    `<li>${esc(x.sign)}<span class="arw">→</span><span class="dxn">${esc(x.dx)}</span></li>`).join('')}</ul>`;
 
   /* 番号は画面に出さない（AU裁定 2026-08-05）。名前だけを並べる */
   const names = ALWAYS_SUSPECT.map(no => stripLayerNote(M.dbName(no))).filter(x=>x.trim());
-  const sgImm = ALWAYS_SIGNS.filter(x=>x.now).length;
 
-  const nNow  = now.reduce((a,[,i])=>a+i.length,0);
+  const nNow = now.reduce((a,[,i])=>a+i.length,0) + sgNow.length;
   const nRest = rest.reduce((a,[,i])=>a+i.length,0);
 
   const notYet = (R.notYet||[]), notRaised = (R.notRaised||[]);
-  if(!nNow && !nRest && !ALWAYS_SIGNS.length && !notYet.length && !notRaised.length) return '';
+  if(!nNow && !nRest && !sgRest.length && !notYet.length && !notRaised.length) return '';
 
   return `<div class="sec">
     <div class="sech">所見が出たときの判断<span class="sm">いま該当しているものではない</span></div>
     <div class="card sigbox">
 
-      ${(!nNow && !nRest) ? `<div class="rlead" style="margin-bottom:12px">この産婦に固有の報告基準はありません。以下は全例共通のものです</div>` : ''}
-
       ${nNow ? `<div class="nowsec">
         <div class="nowh"><span class="ric">${ICO.alert}</span>すぐ報告する所見<span class="cnt">${nNow}件</span></div>
-        <div class="rlead">当てはまったときに直ちに医師へ報告する。いま報告することではない</div>
-        ${list(now, true, now.length === 1)}
+        <div class="rlead">当てはまったときに直ちに医師へ報告する。いま報告することではない${
+          /* この産婦の可能性から来た報告基準が1件も無いとき、即報告は6病態の6件だけになる。
+             どの産婦でも同じ6件が出るので、件数がこの産婦について何も語らない
+             （AU裁定 2026-08-10） */
+          (now.length || rest.length) ? '' : '<br>この産婦に固有の報告基準はありません。以下は全例共通のものです'
+        }</div>
+        ${list(now, true, now.length === 1 && !sgNow.length)}
+        ${sgNow.length ? (now.length ? `<div class="cat">見逃せない6病態から</div>` : '') + sgList(sgNow) : ''}
       </div>` : ''}
 
-      ${nRest ? `<details class="rfold vfold"><summary>状況に応じて報告する所見<span class="cnt">${nRest}件</span><span class="foldwhat">当てはまったときに、状況とあわせて判断する</span></summary>
-        <div class="body">${list(rest, false, rest.length === 1)}</div></details>` : ''}
-
-      ${ALWAYS_SIGNS.length ? `<details class="rfold vfold"><summary>見逃せない6病態<span class="cnt">${ALWAYS_SIGNS.length}件</span><span class="foldwhat">所見から病名を引く。うち${sgImm}件は即報告</span></summary>
+      ${sgRest.length ? `<details class="rfold vfold"><summary>見逃せない6病態<span class="cnt">残り${sgRest.length}件</span><span class="foldwhat">所見から病名を引く。即報告の${sgNow.length}件は上に出しています</span></summary>
         <div class="body">
           <div class="fn" style="margin:0 0 4px">${names.map(esc).join(' ／ ')}</div>
           <div class="fn" style="margin:0 0 8px">入院時の情報では絞り込めないため、可能性としては立てず、分娩期を通して見ます</div>
-          ${sgList(ALWAYS_SIGNS)}</div></details>` : ''}
+          ${sgList(sgRest)}</div></details>` : ''}
+
+      ${nRest ? `<details class="rfold vfold"><summary>状況に応じて報告する所見<span class="cnt">${nRest}件</span><span class="foldwhat">当てはまったときに、状況とあわせて判断する</span></summary>
+        <div class="body">${list(rest, false, rest.length === 1)}</div></details>` : ''}
 
       ${notYet.length ? `<details class="rfold vfold"><summary>分娩経過中に確認するもの<span class="cnt">${notYet.length}件</span><span class="foldwhat">資料に予知の基準がない。所見が出て初めて分かる</span></summary>
         <!-- 1件ごとの理由は出さない（AU裁定 2026-08-05）。5件とも同じ理由で見出しと重なるため -->
