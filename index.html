@@ -4384,12 +4384,18 @@ function renderSignsBox(){
           (now.length || rest.length) ? '' : '<br>この産婦に固有の報告基準はありません。以下は全例共通のものです'
         }</div>
         ${list(now, true, now.length === 1 && !sgNow.length)}
-        ${sgNow.length ? (now.length ? `<div class="cat">見逃せない6病態から</div>` : '') + sgList(sgNow) : ''}
+        ${sgNow.length ? (now.length ? `<div class="cat">見逃せない6病態から</div>` : '')
+            /* 6病態の名前は、上（必ず開いている側）で名乗る（AU裁定 2026-08-10・案c）。
+               下の畳んだ箱に置くと、開かなければ何の6病態か分からず、
+               開いても3行を先に読まされて矢印の6件が見えにくかった。
+               矢印の右に出るのは早剝・子宮破裂・子宮内感染・羊水塞栓症・DICで、
+               産科危機的出血は12件のどこにも出ない。名前を出す場所は要る */
+            + `<div class="fn" style="margin:0 0 6px">${names.map(esc).join(' ／ ')}</div>`
+            + sgList(sgNow) : ''}
       </div>` : ''}
 
       ${sgRest.length ? `<details class="rfold vfold"><summary>見逃せない6病態<span class="cnt">残り${sgRest.length}件</span><span class="foldwhat">所見から病名を引く。即報告の${sgNow.length}件は上に出しています</span></summary>
         <div class="body">
-          <div class="fn" style="margin:0 0 4px">${names.map(esc).join(' ／ ')}</div>
           <div class="fn" style="margin:0 0 8px">入院時の情報では絞り込めないため、可能性としては立てず、分娩期を通して見ます</div>
           ${sgList(sgRest)}</div></details>` : ''}
 
