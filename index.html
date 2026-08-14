@@ -1691,8 +1691,14 @@ function assess(I, DB) {
       if (r.raiseIf && r.raiseIf[no] && !r.raiseIf[no](I)) return;
       put(no, r.label);
     });
+    /* 実装仕様3-1・決定カード10の「母体身長150cm以上のとき06は立たない
+       （経由発火もしない）」は、身長という入口が立たなければ06が立たない、
+       という意味で読む（決定カード10の訂正文「母体171cmで入口なし」）。
+       身長の入口は shortStature の test（150cm未満）が持っているため、
+       ここで一律に止める必要はない。巨大児・帝王切開既往・両親の身長差から
+       立った06は、別の入口であり経由先も立てる（AU裁定 2026-08-14）。
+       13・14の資料上の因子は「CPD」であって身長ではない。 */
     if (r.via) for (const [from, tos] of Object.entries(r.via)) {
-      if (from === '06' && I.height != null && I.height >= 150) continue; // 身長150cm以上は06経由発火なし
       tos.forEach(no => put(no, r.label, from));
     }
   }
