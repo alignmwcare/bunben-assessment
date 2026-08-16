@@ -1976,7 +1976,7 @@ function assess(I, DB) {
 /* 画面に出す版。差し替えが届いているかを開いた瞬間に確かめられるようにする
    （AU裁定 2026-08-15）。モニター中に「どの版か」を聞けるようにするため。
    ★ ファイルを更新したらここも直すこと */
-const APP_VERSION = '2026-08-15版k';
+const APP_VERSION = '2026-08-15版l';
 
 const HANDOFF_KEY = 'bunben:handoff:v1';
 
@@ -4011,8 +4011,13 @@ const ST_COLOR = { '支持':'s-hit', '該当':'s-hit',
                    '注意':'s-warn',
                    '保留':'s-watch', '経過観察':'s-watch' };
 
-function openLayer3(p){
+function openLayer3(p, isRepeat){
   const st = (p.state && p.state.s) || '';
+  /* 2回目以降の期では、該当でも3層目を畳む（AU裁定 2026-08-15）。
+     該当であることは各期で示す必要があるが、中身（見るときの注意・
+     この時期にすること・報告する基準）は初出の期と同じ文章で、
+     008では胎児機能不全の詳細が第1期と第2期で2回開いていた。 */
+  if(isRepeat) return false;
   return st === '支持' || st === '該当' || st === '注意';
 }
 
@@ -4064,6 +4069,7 @@ function possBox(p, stKey, seen, firstStage){
      「消えたから」ではなく「同一内容の再掲だから」畳むので、文字色は薄くしない。
      緊急度マーカーは畳んだ見出しにも出す。 */
   const isRepeat = !!(firstStage && firstStage !== stKey);
+  const open3 = openLayer3(p, isRepeat);
 
   /* ============ 3層構造（指示B-3） ============
      1層目 名称と状態          常に表示
@@ -4082,7 +4088,6 @@ function possBox(p, stKey, seen, firstStage){
      2層目は「何を見るか」だけにして短く保ち、注意点は3層目に置く
      （keywords30.json が watch と watchNote に分かれた 2026-08-05 に対応）。 */
   const wnote = (K.watchNote || []);
-  const open3 = openLayer3(p);
   const stNow = (p.state && p.state.s) || '';
 
   /* 2回目以降の期に出るもので、判断が動いていない（経過観察の）ものは
